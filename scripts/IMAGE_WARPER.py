@@ -7,7 +7,6 @@ import cv2
 import glob
 #
 from utilities import *
-import CAMERA
 
 
 class IMAGE_WARPER(object):
@@ -29,8 +28,10 @@ class IMAGE_WARPER(object):
 
         #
         # Define conversions in x and y from pixels space to meters
-        self.ym_per_pix = 3.0/(521 - 446) # meters per pixel in y dimension
-        self.xm_per_pix = 3.7/(935 - 344) # meters per pixel in x dimension
+        lane_width_in_pixel = np.average( [(935 - 344), (938 - 353)] )
+        dash_length_in_pixel = np.average( [(521 - 446), (446 - 358)] )
+        self.xm_per_pix = 3.7/lane_width_in_pixel # meters per pixel in x dimension
+        self.ym_per_pix = 3.0/dash_length_in_pixel # meters per pixel in y dimension
         #-------------------------#
 
         # Variables
@@ -75,6 +76,7 @@ class IMAGE_WARPER(object):
 
 
 if __name__ == "__main__":
+    import CAMERA
     # Create the camera object instance
     cam_1 = CAMERA.CAMERA()
 
@@ -82,8 +84,6 @@ if __name__ == "__main__":
     cal_images = glob.glob("../camera_cal/calibration*.jpg")
     result = cam_1.calibrate(cal_images, (9,6))
     print("Calibration finished!" if result else "Calibration failed!")
-
-
     # Create an instance
     birdeye_trans = IMAGE_WARPER()
 
@@ -94,14 +94,17 @@ if __name__ == "__main__":
     files = sorted(os.listdir(dir_in))
 
     # Read an image
-    f_name = files[0] # 0 and 1
+    f_name = files[1] # 0 and 1
     img_ori = mpimg.imread(dir_in + f_name) # Read image from disk
     img_undistorted = cam_1.undistort(img_ori)
 
 
+    # Draw polygon of source warp region on it
     img_line = np.copy(img_undistorted)
     cv2.polylines(img_line, np.int32([birdeye_trans.warp_src]), isClosed=True, color=(255, 0, 0), thickness=1)
-    img_birdeye = birdeye_trans.transform(img_line)
+
+    # Transform the image with line
+    img_birdeye = birdeye_trans.transform(img_line, is_interpolating=False)
 
     # Save results
     save_image_RGB_or_gray(img_line, dir_out, f_name[:-4] + "img_line.jpg")
