@@ -29,8 +29,8 @@ class IMAGE_WARPER(object):
 
         #
         # Define conversions in x and y from pixels space to meters
-        self.ym_per_pix = 30/720 # meters per pixel in y dimension
-        self.xm_per_pix = 3.7/700 # meters per pixel in x dimension
+        self.ym_per_pix = 3.0/(521 - 446) # meters per pixel in y dimension
+        self.xm_per_pix = 3.7/(935 - 344) # meters per pixel in x dimension
         #-------------------------#
 
         # Variables
@@ -50,17 +50,25 @@ class IMAGE_WARPER(object):
         self.M_inv_birdeye = cv2.getPerspectiveTransform(self.warp_dst, self.warp_src)
 
 
-    def transform(self, img):
+    def transform(self, img, is_interpolating=False):
         """
         """
         img_size = (img.shape[1], img.shape[0])
-        return cv2.warpPerspective(img, self.M_birdeye, img_size, flags=cv2.INTER_LINEAR)
+        if is_interpolating:
+            flags = cv2.INTER_LINEAR
+        else:
+            flags = cv2.INTER_NEAREST
+        return cv2.warpPerspective(img, self.M_birdeye, img_size, flags=flags)
 
-    def inverse_transform(self, img):
+    def inverse_transform(self, img, is_interpolating=False):
         """
         """
         img_size = (img.shape[1], img.shape[0])
-        return cv2.warpPerspective(img, self.M_inv_birdeye, img_size, flags=cv2.INTER_LINEAR)
+        if is_interpolating:
+            flags = cv2.INTER_LINEAR
+        else:
+            flags = cv2.INTER_NEAREST
+        return cv2.warpPerspective(img, self.M_inv_birdeye, img_size, flags=flags)
 
 
 
@@ -118,3 +126,5 @@ if __name__ == "__main__":
 
 
     plt.show()
+    # cv2.imshow('img',img_birdeye)
+    # cv2.waitKey(0)
