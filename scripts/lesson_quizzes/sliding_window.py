@@ -6,6 +6,19 @@ import cv2
 # Load our image
 binary_warped = mpimg.imread('warped_example.jpg')
 
+def fit_poly(img_shape, leftx, lefty, rightx, righty):
+    # global left_fit, right_fit
+    ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+    # Generate x and y values for plotting
+    ploty = np.linspace(0, img_shape[0]-1, img_shape[0])
+    ### TO-DO: Calc both polynomials using ploty, left_fit and right_fit ###
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+    return left_fitx, right_fitx, ploty
+
 def find_lane_pixels(binary_warped):
     # Take a histogram of the bottom half of the image
     histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
@@ -14,7 +27,7 @@ def find_lane_pixels(binary_warped):
     # Find the peak of the left and right halves of the histogram
     # These will be the starting point for the left and right lines
     midpoint = np.int(histogram.shape[0]//2)
-    leftx_base = np.argmax(histogram[:midpoint])
+    leftx_base = np.argmax(histogram[:midpoint:-1]) # Search from center, the np.argmax() will only return the first found
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
     # HYPERPARAMETERS
@@ -57,16 +70,6 @@ def find_lane_pixels(binary_warped):
         (win_xright_high,win_y_high),(0,255,0), 2)
 
         ### TO-DO: Identify the nonzero pixels in x and y within the window ###
-        # good_left_inds = []
-        # for nx, ny, idx in zip(nonzerox, nonzeroy, range(len(nonzerox))):
-        #     if nx >= win_xleft_low and nx < win_xleft_high:
-        #         if ny >= win_y_low and ny < win_y_high:
-        #             good_left_inds.append(idx)
-        # good_right_inds = []
-        # for nx, ny, idx in zip(nonzerox, nonzeroy, range(len(nonzerox))):
-        #     if nx >= win_xright_low and nx < win_xright_high:
-        #         if ny >= win_y_low and ny < win_y_high:
-        #             good_right_inds.append(idx)
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
         (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
         good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
@@ -105,20 +108,8 @@ def fit_polynomial(binary_warped):
     # Find our lane pixels first
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(binary_warped)
 
-    ### TO-DO: Fit a second order polynomial to each using `np.polyfit` ###
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
-
-    # Generate x and y values for plotting
-    ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-    try:
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-    except TypeError:
-        # Avoids an error if `left` and `right_fit` are still none or incorrect
-        print('The function failed to fit a line!')
-        left_fitx = 1*ploty**2 + 1*ploty
-        right_fitx = 1*ploty**2 + 1*ploty
+    # Fit new polynomials
+    left_fitx, right_fitx, ploty = fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
 
     ## Visualization ##
     # Colors in the left and right lane regions

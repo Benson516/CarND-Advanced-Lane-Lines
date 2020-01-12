@@ -39,20 +39,6 @@ def search_around_poly(binary_warped):
     ### within the +/- margin of our polynomial function ###
     ### Hint: consider the window areas for the similarly named variables ###
     ### in the previous quiz, but change the windows to our new search area ###
-    # left_lane_inds = []
-    # for nx, ny, idx in zip(nonzerox, nonzeroy, range(len(nonzerox))):
-    #     leftx_current = left_fit[0]*ny**2 + left_fit[1]*ny + left_fit[2]
-    #     win_xleft_low = leftx_current - margin  # Update this
-    #     win_xleft_high = leftx_current + margin  # Update this
-    #     if nx > win_xleft_low and nx < win_xleft_high:
-    #         left_lane_inds.append(idx)
-    # right_lane_inds = []
-    # for nx, ny, idx in zip(nonzerox, nonzeroy, range(len(nonzerox))):
-    #     rightx_current = right_fit[0]*ny**2 + right_fit[1]*ny + right_fit[2]
-    #     win_xright_low = rightx_current - margin  # Update this
-    #     win_xright_high = rightx_current + margin  # Update this
-    #     if nx > win_xright_low and nx < win_xright_high:
-    #         right_lane_inds.append(idx)
     left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy +
                     left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) +
                     left_fit[1]*nonzeroy + left_fit[2] + margin)))
