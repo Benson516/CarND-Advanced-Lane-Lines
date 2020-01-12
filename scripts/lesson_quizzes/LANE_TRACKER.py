@@ -35,7 +35,7 @@ class LANE_TRACKER(object):
         self.right_fit = None
         #-------------------------#
 
-    def _fit_poly(img_shape, leftx, lefty, rightx, righty):
+    def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
         left_fit = np.polyfit(lefty, leftx, 2)
         right_fit = np.polyfit(righty, rightx, 2)
@@ -52,15 +52,21 @@ class LANE_TRACKER(object):
         #
         return left_fitx, right_fitx, ploty
 
-    def _find_lane_pixels(binary_warped):
+    def _find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
         histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
+
+        # Weighted hidtogram, more weight at center
+        midpoint = np.int(histogram.shape[0]//2)
+        histogram_weight = np.array([midpoint - np.abs(midpoint - x) for x in range(len(histogram))] )
+        histogram = histogram * histogram_weight
+
         # Create an output image to draw on and visualize the result
         out_img = np.dstack((binary_warped, binary_warped, binary_warped))
         # Find the peak of the left and right halves of the histogram
         # These will be the starting point for the left and right lines
         midpoint = np.int(histogram.shape[0]//2)
-        leftx_base = np.argmax(histogram[:midpoint:-1]) # Search from the center, the np.argmax() will only return the first found
+        leftx_base = (midpoint-1) - np.argmax(histogram[(midpoint-1)::-1]) # Search from the center, the np.argmax() will only return the first found
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
         # HYPERPARAMETERS
@@ -136,12 +142,12 @@ class LANE_TRACKER(object):
 
         return leftx, lefty, rightx, righty, out_img
 
-    def fit_polynomial(binary_warped):
+    def fit_polynomial(self, binary_warped):
         # Find our lane pixels first
-        leftx, lefty, rightx, righty, out_img = _find_lane_pixels(binary_warped)
+        leftx, lefty, rightx, righty, out_img = self._find_lane_pixels(binary_warped)
 
         # Fit new polynomials
-        left_fitx, right_fitx, ploty = _fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
+        left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
 
         ## Visualization ##
         #----------------------------#
@@ -157,7 +163,7 @@ class LANE_TRACKER(object):
 
         return out_img
 
-    def search_around_poly(binary_warped):
+    def search_around_poly(self, binary_warped):
         # HYPERPARAMETER
         # Choose the width of the margin around the previous polynomial to search
         # The quiz grader expects 100 here, but feel free to tune on your own!
@@ -188,7 +194,8 @@ class LANE_TRACKER(object):
         righty = nonzeroy[right_lane_inds]
 
         # Fit new polynomials
-        left_fitx, right_fitx, ploty = _fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
+        left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
+
 
 
         ## Visualization ##
@@ -222,5 +229,12 @@ class LANE_TRACKER(object):
         # plt.plot(right_fitx, ploty, color='yellow')
         #----------------------------#
         ## End visualization steps ##
-
+        
         return result
+
+    def find_lane(self, binary_warped):
+        """
+        """
+        out_img = self.fit_polynomial(binary_warped)
+#         out_img = self.search_around_poly(binary_warped)
+        return out_img
