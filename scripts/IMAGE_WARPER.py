@@ -22,14 +22,16 @@ class IMAGE_WARPER(object):
         ori_x1 = 200
         ori_x2 = img_size[0] - ori_x1
         self.warp_src = np.float32([ [593,450],[686,450],[ori_x2, img_size[1] ],[ori_x1,img_size[1] ] ])
-        tranx_x1 = 350
+        tranx_x1 = 300 # 350
         trans_x2 = img_size[0] - tranx_x1
         self.warp_dst = np.float32([[tranx_x1,0],[trans_x2,0],[trans_x2, img_size[1]],[tranx_x1, img_size[1]]])
 
         #
         # Define conversions in x and y from pixels space to meters
-        lane_width_in_pixel = np.average( [(935 - 344), (938 - 353)] )
-        dash_length_in_pixel = np.average( [(521 - 446), (446 - 358)] )
+        lane_width_in_pixel = np.average( [(986 - 293), (1009 - 314), (991 - 304), (1012 - 323)] )
+        dash_length_in_pixel = np.average( [(521 - 446), (275 - 200), (446 - 358), (185 - 100), (550 - 472), (679 - 599)] )
+        print("lane_width_in_pixel = %f" % lane_width_in_pixel)
+        print("dash_length_in_pixel = %f" % dash_length_in_pixel)
         self.xm_per_pix = 3.7/lane_width_in_pixel # meters per pixel in x dimension
         self.ym_per_pix = 3.0/dash_length_in_pixel # meters per pixel in y dimension
         #-------------------------#
@@ -94,7 +96,7 @@ if __name__ == "__main__":
     files = sorted(os.listdir(dir_in))
 
     # Read an image
-    f_name = files[1] # 0 and 1
+    f_name = files[0] # 0 and 1
     img_ori = mpimg.imread(dir_in + f_name) # Read image from disk
     img_undistorted = cam_1.undistort(img_ori)
 
