@@ -70,6 +70,12 @@ class LANE_TRACKER(object):
     #---------------------------------------------------------------------------------------------------#
     # end Visualization
 
+    def trans_poly_pixel_2_meter(self, poly_in, m_per_pix_out, m_per_pix_in):
+        """
+        """
+        deg = len(poly_in) - 1
+        return np.array() [ m_per_pix_out * poly_in[idx]/( m_per_pix_in**(deg-idx) ) for idx in range(len(poly_in))] )
+
     def poly_func(self, poly_in, VAL_in, offset=0):
         """
         NOTE: VAL_in and VAL_out can be array or matrix.
