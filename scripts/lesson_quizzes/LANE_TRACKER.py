@@ -23,9 +23,12 @@ class LANE_TRACKER(object):
         # Variables
         #-------------------------#
         self.prefix = prefix
-        # Polynominal coefficients
+        # Polynominal coefficients, in pixel
         self.left_fit = None
         self.right_fit = None
+        # Polynominal coefficients, in meter
+        self.left_fit_m = None
+        self.right_fit_m = None
         #-------------------------#
 
     # Visualization
@@ -297,16 +300,25 @@ class LANE_TRACKER(object):
         out_img = self.fit_polynomial(binary_warped, debug=debug)
         return out_img
 
-    def pipeline(self, binary_warped, debug=True):
+    def pipeline(self, binary_warped, xm_per_pix, ym_per_pix, debug=True):
         """
         """
         # 1.Find lane
         out_img = self.find_lane(binary_warped, debug=debug)
         # 2. Calculate curvature
-        y_eval = binary_warped.shape[0] - 1
-        R_left = self.curvature_func(self.left_fit, y_eval)
-        R_right = self.curvature_func(self.right_fit, y_eval)
+        y_eval_m = float(binary_warped.shape[0] - 1)/ym_per_pix
+        self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
+        self.right_fit_m = self.trans_poly_pixel_2_meter( self.right_fit, xm_per_pix, ym_per_pix)
+        R_left = self.curvature_func(self.left_fit_m, y_eval_m)
+        R_right = self.curvature_func(self.right_fit_m, y_eval_m)
         R_avg = (R_left + R_right)*0.5
-#         print("R_avg = %f" % R_avg)
+        # 3. Calculate the vehicle position with respect to center
+        lx_left = self.poly_func(self.left_fit_m, y_eval_m)
+        lx_right = self.poly_func(self.right_fit_m, y_eval_m)
+        lx_avg = (lx_left + lx_right)*0.5
+        
+        if debug:
+            print("(R_left, R_right, R_avg) = (%f, %f, %f)" % (R_left, R_right, R_avg) )
+            print("(lx_left, lx_right, lx_avg) = (%f, %f, %f)" % (lx_left, lx_right, lx_avg) )
 
         return out_img, R_avg
