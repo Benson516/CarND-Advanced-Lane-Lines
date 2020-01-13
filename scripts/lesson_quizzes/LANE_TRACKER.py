@@ -77,7 +77,7 @@ class LANE_TRACKER(object):
         """
         """
         deg = len(poly_in) - 1
-        return np.array() [ m_per_pix_out * poly_in[idx]/( m_per_pix_in**(deg-idx) ) for idx in range(len(poly_in))] )
+        return np.array( [ m_per_pix_out * poly_in[idx]/( m_per_pix_in**(deg-idx) ) for idx in range(len(poly_in))] )
 
     def poly_func(self, poly_in, VAL_in, offset=0):
         """
@@ -305,20 +305,23 @@ class LANE_TRACKER(object):
         """
         # 1.Find lane
         out_img = self.find_lane(binary_warped, debug=debug)
+
         # 2. Calculate curvature
-        y_eval_m = float(binary_warped.shape[0] - 1)/ym_per_pix
+        y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
         self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
         self.right_fit_m = self.trans_poly_pixel_2_meter( self.right_fit, xm_per_pix, ym_per_pix)
         R_left = self.curvature_func(self.left_fit_m, y_eval_m)
         R_right = self.curvature_func(self.right_fit_m, y_eval_m)
         R_avg = (R_left + R_right)*0.5
+
         # 3. Calculate the vehicle position with respect to center
-        lx_left = self.poly_func(self.left_fit_m, y_eval_m)
-        lx_right = self.poly_func(self.right_fit_m, y_eval_m)
+        x_img_center = float(binary_warped.shape[1]//2) * xm_per_pix
+        lx_left = self.poly_func(self.left_fit_m, y_eval_m, -x_img_center)
+        lx_right = self.poly_func(self.right_fit_m, y_eval_m, -x_img_center)
         lx_avg = (lx_left + lx_right)*0.5
-        
+
         if debug:
             print("(R_left, R_right, R_avg) = (%f, %f, %f)" % (R_left, R_right, R_avg) )
             print("(lx_left, lx_right, lx_avg) = (%f, %f, %f)" % (lx_left, lx_right, lx_avg) )
 
-        return out_img, R_avg
+        return out_img, R_avg, lx_avg
