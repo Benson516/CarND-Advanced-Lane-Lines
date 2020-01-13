@@ -12,29 +12,48 @@ class LANE_TRACKER(object):
         # Parameters
         #-------------------------#
         # Sliding window
-        #----------------#
-        # Choose the number of sliding windows
-        self.nwindows = 9
-        # Set the width of the windows +/- margin
-        self.margin = 100
-        # Set minimum number of pixels found to recenter window
-        self.minpix = 50
-        #----------------#
-
+        self.nwindows = 9 # Choose the number of sliding windows
+        self.margin = 100 # Set the width of the windows +/- margin
+        self.minpix = 50 # Set minimum number of pixels found to recenter window
         # Tracking
-        #----------------#
-        self.track_margin = 100
-        self.track_minpix = 5000
-        #----------------#
+        self.track_margin = 100 # Set the width of the windows +/- margin
+        self.track_minpix = 5000 # Set minimum number of pixels found to window
         #-------------------------#
 
         # Variables
         #-------------------------#
         self.prefix = prefix
-        #
+        # Polynominal coefficients
         self.left_fit = None
         self.right_fit = None
         #-------------------------#
+
+    def _draw_color_on_lane_line_points(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=True):
+        """
+        """
+        # Create an output image to draw on and visualize the result
+        if is_drawing_line_only:
+            out_img_l = np.zeros_like(binary_warped)
+            out_img = np.dstack((out_img_l, out_img_l, out_img_l))
+        else:
+            out_img = np.dstack((binary_warped, binary_warped, binary_warped))
+        # Colors in the left and right lane regions
+        out_img[lefty, leftx] = [255, 0, 0]
+        out_img[righty, rightx] = [0, 0, 255]
+        return out_img
+
+    def _draw_lane(self, out_img, ploty, left_fitx, right_fitx):
+        """
+        """
+        # Draw the lane
+        lane_img = np.zeros_like(out_img)
+        # Generate a polygon to illustrate the search window area
+        # And recast the x and y points into usable format for cv2.fillPoly()
+        lane_window1 = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+        lane_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+        lane_pts = np.hstack((lane_window1, lane_window2))
+        cv2.fillPoly(lane_img, np.int_([lane_pts]), (0,255, 0))
+        return cv2.addWeighted(out_img, 1, lane_img, 0.3, 0)
 
     def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
@@ -53,6 +72,15 @@ class LANE_TRACKER(object):
         #
         return left_fitx, right_fitx, ploty
 
+    def poly_func(self, poly_in, VAL_in, offset=0):
+        """
+        NOTE: VAL_in and VAL_out can be array or matrix
+
+        VAL_out = poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset
+
+        """
+        return ( poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset )
+
     def _find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
         histogram = np.sum(binary_warped[binary_warped.shape[0]//2:,:], axis=0)
@@ -61,7 +89,6 @@ class LANE_TRACKER(object):
         midpoint = np.int(histogram.shape[0]//2)
         histogram_weight = np.array([midpoint - np.abs(midpoint - x) for x in range(len(histogram))] )
         histogram = histogram * histogram_weight
-
 
         # Find the peak of the left and right halves of the histogram
         # These will be the starting point for the left and right lines
@@ -141,27 +168,27 @@ class LANE_TRACKER(object):
 
         return leftx, lefty, rightx, righty, win_points_list # out_img
 
-    def fit_polynomial(self, binary_warped):
+    def fit_polynomial(self, binary_warped, debug=False):
         # Find our lane pixels first
         leftx, lefty, rightx, righty, win_points_list = self._find_lane_pixels(binary_warped)
 
-        # Fit new polynomials
+        # Update, fit new polynomials
         left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
 
 
         ## Visualization ##
         #----------------------------#
-        # Create an output image to draw on and visualize the result
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))
-        # Colors in the left and right lane regions
-        out_img[lefty, leftx] = [255, 0, 0]
-        out_img[righty, rightx] = [0, 0, 255]
+        # Generate the output image with lane-line pixels marked
+        out_img = self._draw_color_on_lane_line_points(binary_warped, leftx, lefty, rightx, righty)
 
+        if debug:
+            # Draw the windows on the visualization image
+            for win_points in win_points_list:
+                cv2.rectangle(out_img, win_points[0], win_points[1], (128,128,0), 2)
+                cv2.rectangle(out_img, win_points[2], win_points[3], (128,128,0), 2)
 
-        # Draw the windows on the visualization image
-        for win_points in win_points_list:
-            cv2.rectangle(out_img, win_points[0], win_points[1], (0,255,0), 2)
-            cv2.rectangle(out_img, win_points[2], win_points[3], (0,255,0), 2)
+        # Draw the lane
+        out_img = self._draw_lane(out_img, ploty, left_fitx, right_fitx)
 
         # # Plots the left and right polynomials on the lane lines
         # plt.plot(left_fitx, ploty, color='yellow')
@@ -171,11 +198,11 @@ class LANE_TRACKER(object):
 
         return out_img
 
-    def search_around_poly(self, binary_warped):
-        # HYPERPARAMETER
-        # Choose the width of the margin around the previous polynomial to search
-        # The quiz grader expects 100 here, but feel free to tune on your own!
+    def search_around_poly(self, binary_warped, debug=False):
+        #
         margin = self.track_margin
+        left_fit = self.left_fit
+        right_fit = self.right_fit
 
         # Grab activated pixels
         nonzero = binary_warped.nonzero()
@@ -186,14 +213,10 @@ class LANE_TRACKER(object):
         ### within the +/- margin of our polynomial function ###
         ### Hint: consider the window areas for the similarly named variables ###
         ### in the previous quiz, but change the windows to our new search area ###
-        left_fit = self.left_fit
-        right_fit = self.right_fit
-        left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy +
-                        left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) +
-                        left_fit[1]*nonzeroy + left_fit[2] + margin)))
-        right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy +
-                        right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) +
-                        right_fit[1]*nonzeroy + right_fit[2] + margin)))
+        left_lane_inds = ((nonzerox > self.poly_func(left_fit, nonzeroy, -margin) )
+                          & (nonzerox < self.poly_func(left_fit, nonzeroy, margin)) )
+        right_lane_inds = ((nonzerox > self.poly_func(right_fit, nonzeroy, -margin) )
+                           & (nonzerox < self.poly_func(right_fit, nonzeroy, margin)) )
 
         # Again, extract left and right line pixel positions
         leftx = nonzerox[left_lane_inds]
@@ -203,38 +226,39 @@ class LANE_TRACKER(object):
 
         # Check if the points in region is not plenty enough
         if len(leftx) < self.track_minpix or len(rightx) < self.track_minpix:
+            print("len(leftx) = %d, len(rightx) = %d" % (len(leftx), len(rightx)))
             return None
 
-        # Fit new polynomials
+        # Update, fit new polynomials
         left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
 
 
 
         ## Visualization ##
         #----------------------------#
-        # Create an image to draw on and an image to show the selection window
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
-        # Colors in the left and right lane regions
-        out_img[lefty, leftx] = [255, 0, 0]
-        out_img[righty, rightx] = [0, 0, 255]
+        # Generate the output image with lane-line pixels marked
+        out_img = self._draw_color_on_lane_line_points(binary_warped, leftx, lefty, rightx, righty)
+
+        if debug:
+            # Draw windows
+            window_img = np.zeros_like(out_img)
+            # Generate a polygon to illustrate the search window area
+            # And recast the x and y points into usable format for cv2.fillPoly()
+            left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+            left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
+            left_line_pts = np.hstack((left_line_window1, left_line_window2))
+            right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+            right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
+            right_line_pts = np.hstack((right_line_window1, right_line_window2))
+            # Draw the lane-lines onto the warped blank image
+            cv2.fillPoly(window_img, np.int_([left_line_pts]), (128,128, 0))
+            cv2.fillPoly(window_img, np.int_([right_line_pts]), (128,128, 0))
+            out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
 
-        window_img = np.zeros_like(out_img)
-        # Generate a polygon to illustrate the search window area
-        # And recast the x and y points into usable format for cv2.fillPoly()
-        left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-        left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin,
-                                  ploty])))])
-        left_line_pts = np.hstack((left_line_window1, left_line_window2))
-        right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-        right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin,
-                                  ploty])))])
-        right_line_pts = np.hstack((right_line_window1, right_line_window2))
+        # Draw the lane
+        out_img = self._draw_lane(out_img, ploty, left_fitx, right_fitx)
 
-        # Draw the lane onto the warped blank image
-        cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-        cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
-        img_mix = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
         # # Plot the polynomial lines onto the image
         # plt.plot(left_fitx, ploty, color='yellow')
@@ -242,16 +266,16 @@ class LANE_TRACKER(object):
         #----------------------------#
         ## End visualization steps ##
 
-        return img_mix
+        return out_img
 
-    def find_lane(self, binary_warped):
+    def find_lane(self, binary_warped, debug=True):
         """
         """
         if (not self.left_fit is None) and (not self.right_fit is None):
             # print("track")
-            out_img = self.search_around_poly(binary_warped)
+            out_img = self.search_around_poly(binary_warped, debug=debug)
             if not out_img is None:
                 return out_img
         # print("sliding window")
-        out_img = self.fit_polynomial(binary_warped)
+        out_img = self.fit_polynomial(binary_warped, debug=debug)
         return out_img
