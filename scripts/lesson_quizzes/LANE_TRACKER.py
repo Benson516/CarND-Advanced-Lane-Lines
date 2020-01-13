@@ -24,6 +24,7 @@ class LANE_TRACKER(object):
         # Tracking
         #----------------#
         self.track_margin = 100
+        self.track_minpix = 5000
         #----------------#
         #-------------------------#
 
@@ -48,7 +49,7 @@ class LANE_TRACKER(object):
 
         # Update
         self.left_fit = left_fit
-        self.right_fitx = right_fitx
+        self.right_fit = right_fit
         #
         return left_fitx, right_fitx, ploty
 
@@ -193,6 +194,10 @@ class LANE_TRACKER(object):
         rightx = nonzerox[right_lane_inds]
         righty = nonzeroy[right_lane_inds]
 
+        # Check if the points in region is not plenty enough
+        if len(leftx) < self.track_minpix or len(rightx) < self.track_minpix:
+            return None
+
         # Fit new polynomials
         left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
 
@@ -229,12 +234,17 @@ class LANE_TRACKER(object):
         # plt.plot(right_fitx, ploty, color='yellow')
         #----------------------------#
         ## End visualization steps ##
-        
+
         return result
 
     def find_lane(self, binary_warped):
         """
         """
+        if (not self.left_fit is None) and (not self.right_fit is None):
+            # print("track")
+            out_img = self.search_around_poly(binary_warped)
+            if not out_img is None:
+                return out_img
+        # print("sliding window")
         out_img = self.fit_polynomial(binary_warped)
-#         out_img = self.search_around_poly(binary_warped)
         return out_img
