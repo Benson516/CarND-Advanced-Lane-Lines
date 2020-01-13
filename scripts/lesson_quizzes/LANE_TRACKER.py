@@ -315,13 +315,14 @@ class LANE_TRACKER(object):
         R_avg = (R_left + R_right)*0.5
 
         # 3. Calculate the vehicle position with respect to center
-        x_img_center = float(binary_warped.shape[1]//2) * xm_per_pix
+        x_img_center = float(binary_warped.shape[1] - 1) * xm_per_pix * 0.5
         lx_left = self.poly_func(self.left_fit_m, y_eval_m, -x_img_center)
         lx_right = self.poly_func(self.right_fit_m, y_eval_m, -x_img_center)
         lx_avg = (lx_left + lx_right)*0.5
+        lx_delta = lx_right - lx_left
 
         if debug:
             print("(R_left, R_right, R_avg) = (%f, %f, %f)" % (R_left, R_right, R_avg) )
-            print("(lx_left, lx_right, lx_avg) = (%f, %f, %f)" % (lx_left, lx_right, lx_avg) )
+            print("(lx_left, lx_right, lx_avg, lx_delta) = (%f, %f, %f, %f)" % (lx_left, lx_right, lx_avg, lx_delta) )
 
         return out_img, R_avg, lx_avg
