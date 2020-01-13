@@ -28,7 +28,7 @@ class LANE_TRACKER(object):
         self.right_fit = None
         #-------------------------#
 
-    def _draw_color_on_lane_line_points(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=True):
+    def _get_colored_line_point_image(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=True):
         """
         """
         # Create an output image to draw on and visualize the result
@@ -42,7 +42,7 @@ class LANE_TRACKER(object):
         out_img[righty, rightx] = [0, 0, 255]
         return out_img
 
-    def _draw_lane(self, out_img, ploty, left_fitx, right_fitx):
+    def _draw_strip(self, out_img, ploty, left_fitx, right_fitx, color=(0,255, 0)):
         """
         """
         # Draw the lane
@@ -52,8 +52,8 @@ class LANE_TRACKER(object):
         lane_window1 = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
         lane_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
         lane_pts = np.hstack((lane_window1, lane_window2))
-        cv2.fillPoly(lane_img, np.int_([lane_pts]), (0,255, 0))
-        return cv2.addWeighted(out_img, 1, lane_img, 0.3, 0)
+        cv2.fillPoly(lane_img, np.int_([lane_pts]), color)
+        return cv2.addWeighted(out_img, 1, lane_img, 0.5, 0)
 
     def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
@@ -179,7 +179,7 @@ class LANE_TRACKER(object):
         ## Visualization ##
         #----------------------------#
         # Generate the output image with lane-line pixels marked
-        out_img = self._draw_color_on_lane_line_points(binary_warped, leftx, lefty, rightx, righty)
+        out_img = self._get_colored_line_point_image(binary_warped, leftx, lefty, rightx, righty)
 
         if debug:
             # Draw the windows on the visualization image
@@ -188,7 +188,7 @@ class LANE_TRACKER(object):
                 cv2.rectangle(out_img, win_points[2], win_points[3], (128,128,0), 2)
 
         # Draw the lane
-        out_img = self._draw_lane(out_img, ploty, left_fitx, right_fitx)
+        out_img = self._draw_strip(out_img, ploty, left_fitx, right_fitx)
 
         # # Plots the left and right polynomials on the lane lines
         # plt.plot(left_fitx, ploty, color='yellow')
@@ -237,27 +237,30 @@ class LANE_TRACKER(object):
         ## Visualization ##
         #----------------------------#
         # Generate the output image with lane-line pixels marked
-        out_img = self._draw_color_on_lane_line_points(binary_warped, leftx, lefty, rightx, righty)
+        out_img = self._get_colored_line_point_image(binary_warped, leftx, lefty, rightx, righty)
 
         if debug:
             # Draw windows
-            window_img = np.zeros_like(out_img)
-            # Generate a polygon to illustrate the search window area
-            # And recast the x and y points into usable format for cv2.fillPoly()
-            left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-            left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
-            left_line_pts = np.hstack((left_line_window1, left_line_window2))
-            right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-            right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
-            right_line_pts = np.hstack((right_line_window1, right_line_window2))
-            # Draw the lane-lines onto the warped blank image
-            cv2.fillPoly(window_img, np.int_([left_line_pts]), (128,128, 0))
-            cv2.fillPoly(window_img, np.int_([right_line_pts]), (128,128, 0))
-            out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+            out_img = self._draw_strip(out_img, ploty, left_fitx-margin, left_fitx+margin, color=(128,128,0))
+            out_img = self._draw_strip(out_img, ploty, right_fitx-margin, right_fitx+margin, color=(128,128,0))
+
+#             window_img = np.zeros_like(out_img)
+#             # Generate a polygon to illustrate the search window area
+#             # And recast the x and y points into usable format for cv2.fillPoly()
+#             left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+#             left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
+#             left_line_pts = np.hstack((left_line_window1, left_line_window2))
+#             right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+#             right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
+#             right_line_pts = np.hstack((right_line_window1, right_line_window2))
+#             # Draw the lane-lines onto the warped blank image
+#             cv2.fillPoly(window_img, np.int_([left_line_pts]), (128,128, 0))
+#             cv2.fillPoly(window_img, np.int_([right_line_pts]), (128,128, 0))
+#             out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
 
         # Draw the lane
-        out_img = self._draw_lane(out_img, ploty, left_fitx, right_fitx)
+        out_img = self._draw_strip(out_img, ploty, left_fitx, right_fitx)
 
 
         # # Plot the polynomial lines onto the image
