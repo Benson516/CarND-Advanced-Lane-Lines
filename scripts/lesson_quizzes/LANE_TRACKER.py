@@ -28,6 +28,8 @@ class LANE_TRACKER(object):
         self.right_fit = None
         #-------------------------#
 
+    # Visualization
+    #---------------------------------------------------------------------------------------------------#
     def _get_colored_line_point_image(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=True):
         """
         """
@@ -65,6 +67,22 @@ class LANE_TRACKER(object):
         lane_pts = np.hstack((lane_window1, lane_window2))
         cv2.fillPoly(lane_img, np.int_([lane_pts]), color)
         return cv2.addWeighted(out_img, 1, lane_img, 0.5, 0)
+    #---------------------------------------------------------------------------------------------------#
+    # end Visualization
+
+    def poly_func(self, poly_in, VAL_in, offset=0):
+        """
+        NOTE: VAL_in and VAL_out can be array or matrix.
+        VAL_out = poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset
+        """
+        return ( poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset )
+
+    def curvature_func(self, poly_in, VAL_in):
+        """
+        NOTE: VAL_in and VAL_out can be array or matrix.
+        _R = (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/abs(2.0*poly_in[0])
+        """
+        return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/np.absolute(2.0*poly_in[0]) )
 
     def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
@@ -74,23 +92,17 @@ class LANE_TRACKER(object):
         ploty = np.linspace(0, img_shape[0]-1, img_shape[0])
 
         ### TO-DO: Calc both polynomials using ploty, left_fit and right_fit ###
-        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+        left_fitx = self.poly_func(left_fit, ploty)
+        right_fitx = self.poly_func(right_fit, ploty)
 
+
+
+        return left_fit, right_fit, left_fitx, right_fitx, ploty
+
+    def _update_poly(self, left_fit, right_fit):
         # Update
         self.left_fit = left_fit
         self.right_fit = right_fit
-        #
-        return left_fitx, right_fitx, ploty
-
-    def poly_func(self, poly_in, VAL_in, offset=0):
-        """
-        NOTE: VAL_in and VAL_out can be array or matrix
-
-        VAL_out = poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset
-
-        """
-        return ( poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset )
 
     def _find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
@@ -183,9 +195,10 @@ class LANE_TRACKER(object):
         # Find our lane pixels first
         leftx, lefty, rightx, righty, win_points_list = self._find_lane_pixels(binary_warped)
 
-        # Update, fit new polynomials
-        left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
-
+        # Fit new polynomials
+        left_fit, right_fit, left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
+        # Update
+        self._update_poly(left_fit, right_fit)
 
         ## Visualization ##
         #----------------------------#
@@ -239,9 +252,10 @@ class LANE_TRACKER(object):
             print("len(leftx) = %d, len(rightx) = %d" % (len(leftx), len(rightx)))
             return None
 
-        # Update, fit new polynomials
-        left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
-
+        # Fit new polynomials
+        left_fit, right_fit, left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
+        # Update
+        self._update_poly(left_fit, right_fit)
 
         ## Visualization ##
         #----------------------------#
@@ -265,7 +279,7 @@ class LANE_TRACKER(object):
 
         return out_img
 
-    def find_lane(self, binary_warped, debug=True):
+    def find_lane(self, binary_warped, debug=False):
         """
         """
         if (not self.left_fit is None) and (not self.right_fit is None):
@@ -276,3 +290,17 @@ class LANE_TRACKER(object):
         # print("sliding window")
         out_img = self.fit_polynomial(binary_warped, debug=debug)
         return out_img
+
+    def pipeline(self, binary_warped, debug=True):
+        """
+        """
+        # 1.Find lane
+        out_img = self.find_lane(binary_warped, debug=debug)
+        # 2. Calculate curvature
+        y_eval = binary_warped.shape[0] - 1
+        R_left = self.curvature_func(self.left_fit, y_eval)
+        R_right = self.curvature_func(self.right_fit, y_eval)
+        R_avg = (R_left + R_right)*0.5
+#         print("R_avg = %f" % R_avg)
+
+        return out_img, R_avg
