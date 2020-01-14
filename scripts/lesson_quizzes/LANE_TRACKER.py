@@ -12,8 +12,8 @@ class LANE_TRACKER(object):
         # Parameters
         #-------------------------#
         # Sliding window
-        self.nwindows = 9 # Choose the number of sliding windows
-        self.margin = 100 # Set the width of the windows +/- margin
+        self.nwindows = 15 # 9 # Choose the number of sliding windows
+        self.margin = 150 # 100 # Set the width of the windows +/- margin
         self.minpix = 50 # Set minimum number of pixels found to recenter window
         # Tracking
         self.track_margin = 100 # Set the width of the windows +/- margin
@@ -33,7 +33,7 @@ class LANE_TRACKER(object):
 
     # Visualization
     #---------------------------------------------------------------------------------------------------#
-    def _get_colored_line_point_image(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=True):
+    def _get_colored_line_point_image(self, binary_warped, leftx, lefty, rightx, righty, is_drawing_line_only=False):
         """
         """
         # Create an output image to draw on and visualize the result
@@ -142,8 +142,10 @@ class LANE_TRACKER(object):
         # Find the peak of the left and right halves of the histogram
         # These will be the starting point for the left and right lines
         midpoint = np.int(histogram.shape[0]//2)
-        leftx_base = (midpoint-1) - np.argmax(histogram[(midpoint-1)::-1]) # Search from the center, the np.argmax() will only return the first found
-        rightx_base = np.argmax(histogram[midpoint:]) + midpoint
+        endpoint_left = midpoint - 50
+        endpoint_right = midpoint + 50
+        leftx_base = (endpoint_left-1) - np.argmax(histogram[(endpoint_left-1)::-1]) # Search from the center, the np.argmax() will only return the first found
+        rightx_base = np.argmax(histogram[endpoint_right:]) + endpoint_right
 
         # HYPERPARAMETERS
         # Choose the number of sliding windows
@@ -162,6 +164,10 @@ class LANE_TRACKER(object):
         # Current positions to be updated later for each window in nwindows
         leftx_current = leftx_base
         rightx_current = rightx_base
+
+        # The increament of window
+        leftx_delta = 0
+        rightx_delta = 0
 
         # Create empty lists to receive left and right lane pixel indices
         left_lane_inds = []
@@ -196,9 +202,17 @@ class LANE_TRACKER(object):
             ### TO-DO: If you found > minpix pixels, recenter next window ###
             ### (`right` or `leftx_current`) on their mean position ###
             if len(good_left_inds) > minpix:
-                leftx_current = int(np.mean(nonzerox[good_left_inds]) )
+                leftx_current_new = int(np.mean(nonzerox[good_left_inds]) )
+                leftx_delta += 0.2*(leftx_current_new - leftx_current)
+                leftx_current = leftx_current_new + int(leftx_delta)
+            else:
+                leftx_current += int(leftx_delta)
             if len(good_right_inds) > minpix:
-                rightx_current = int(np.mean(nonzerox[good_right_inds]) )
+                rightx_current_new = int(np.mean(nonzerox[good_right_inds]) )
+                rightx_delta += 0.2*(rightx_current_new - rightx_current)
+                rightx_current = rightx_current_new + int(rightx_delta)
+            else:
+                rightx_current += int(rightx_delta)
             # pass # Remove this when you add your function
 
         # Concatenate the arrays of indices (previously was a list of lists of pixels)
@@ -310,24 +324,21 @@ class LANE_TRACKER(object):
 
         return out_img
 
-    def find_lane(self, binary_warped, debug=False):
+    def find_lane(self, binary_warped, is_fixed_to_sliding_window=False, debug=False):
         """
         """
-        if (not self.left_fit is None) and (not self.right_fit is None):
+        is_tracking = False
+        if (not is_fixed_to_sliding_window) and ( (not self.left_fit is None) and (not self.right_fit is None) ):
             # print("track")
             out_img = self.search_around_poly(binary_warped, debug=debug)
             if not out_img is None:
-                return out_img
+                is_tracking = True
+                return out_img, is_tracking
         # print("sliding window")
         out_img = self.fit_polynomial(binary_warped, debug=debug)
-        return out_img
+        return out_img, is_tracking
 
-    def pipeline(self, binary_warped, xm_per_pix, ym_per_pix, debug=True, verbose=False):
-        """
-        """
-        # 1.Find lane
-        out_img = self.find_lane(binary_warped, debug=debug)
-
+    def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix, verbose=False):
         # 2. Calculate curvature
         y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
         self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
@@ -358,5 +369,37 @@ class LANE_TRACKER(object):
             log_out += "\n"
             log_out += "(lx_left, lx_right, lx_avg, lx_delta) = (%f, %f, %f, %f)" % (lx_left, lx_right, lx_avg, lx_delta)
             print(log_out)
+
+        return R_dict, lx_dict
+
+    def sanity_check(self, R_dict, lx_dict):
+        if lx_dict["lx_delta"] > 4.2 or lx_dict["lx_delta"] < 3.2:
+            print("[check] too close")
+            return False
+        if ( R_dict["R_left"]*R_dict["R_right"] < 0.0) and abs(R_dict["R_left"] - R_dict["R_left"]) > 200.0:
+            print("[check] Different direction")
+            return False
+        if abs(R_dict["R_left"]) < 100.0 or abs(R_dict["R_right"]) < 100.0:
+            print("[check] Impossible curvature")
+            return False
+        return True
+
+    def pipeline(self, binary_warped, xm_per_pix, ym_per_pix, debug=True, verbose=False):
+        """
+        """
+        # 1.Find lane
+        out_img, is_tracking = self.find_lane(binary_warped, is_fixed_to_sliding_window=False, debug=debug)
+        # 2. Calculate curvature and the vehicle position with respect to center
+        R_dict, lx_dict = self.calculate_radious_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
+        # 3. Sanity check
+        is_passed = self.sanity_check( R_dict, lx_dict)
+        if (not is_passed) and is_tracking:
+            print("Reset track")
+            # 1. Do it again with sliding window
+            out_img, is_tracking = self.find_lane(binary_warped, is_fixed_to_sliding_window=True, debug=debug)
+            # 2. Calculate curvature and the vehicle position with respect to center
+            R_dict, lx_dict = self.calculate_radious_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
+            # 3. Sanity check
+            is_passed = self.sanity_check( R_dict, lx_dict )
 
         return out_img, R_dict, lx_dict
