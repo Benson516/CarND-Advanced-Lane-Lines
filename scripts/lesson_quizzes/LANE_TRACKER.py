@@ -70,6 +70,19 @@ class LANE_TRACKER(object):
         lane_pts = np.hstack((lane_window1, lane_window2))
         cv2.fillPoly(lane_img, np.int_([lane_pts]), color)
         return cv2.addWeighted(out_img, 1, lane_img, 0.5, 0)
+
+    def _draw_polyline_inplace(self, out_img, poly_in, color=(255,0,255), thickness=5):
+        """
+        """
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, img_shape[0]-1, img_shape[0])
+        plotx = self.poly_func(poly_in, ploty)
+        #
+        line_pts = np.array([np.transpose(np.vstack([plotx, ploty]))])
+        cv2.polylines(out_img, np.int_([line_pts]), isClosed=False, color=color, thickness=thickness)
+
+
+
     #---------------------------------------------------------------------------------------------------#
     # end Visualization
 
@@ -77,7 +90,10 @@ class LANE_TRACKER(object):
         """
         """
         deg = len(poly_in) - 1
-        return np.array( [ m_per_pix_out * poly_in[idx]/( m_per_pix_in**(deg-idx) ) for idx in range(len(poly_in))] )
+        # print("poly_in = %s" % str(poly_in) )
+        poly_out =  np.array( [ m_per_pix_out * poly_in[idx]/( m_per_pix_in**(deg-idx) ) for idx in range(len(poly_in))] )
+        # print("poly_out = %s" % str(poly_out) )
+        return poly_out
 
     def poly_func(self, poly_in, VAL_in, offset=0):
         """
@@ -86,12 +102,15 @@ class LANE_TRACKER(object):
         """
         return ( poly_in[0]*(VAL_in**2) + poly_in[1]*VAL_in + poly_in[2] + offset )
 
-    def curvature_func(self, poly_in, VAL_in):
+    def curvature_func(self, poly_in, VAL_in, is_abs=False):
         """
         NOTE: VAL_in and VAL_out can be array or matrix.
         _R = (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/abs(2.0*poly_in[0])
         """
-        return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/np.absolute(2.0*poly_in[0]) )
+        if is_abs:
+            return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/np.absolute(2.0*poly_in[0]) )
+        else:
+            return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/(2.0*poly_in[0]) )
 
     def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
@@ -103,8 +122,6 @@ class LANE_TRACKER(object):
         ### TO-DO: Calc both polynomials using ploty, left_fit and right_fit ###
         left_fitx = self.poly_func(left_fit, ploty)
         right_fitx = self.poly_func(right_fit, ploty)
-
-
 
         return left_fit, right_fit, left_fitx, right_fitx, ploty
 
@@ -200,7 +217,7 @@ class LANE_TRACKER(object):
 
         return leftx, lefty, rightx, righty, win_points_list # out_img
 
-    def fit_polynomial(self, binary_warped, debug=False):
+    def fit_polynomial(self, binary_warped, debug=False, verbose=False):
         # Find our lane pixels first
         leftx, lefty, rightx, righty, win_points_list = self._find_lane_pixels(binary_warped)
 
@@ -223,14 +240,17 @@ class LANE_TRACKER(object):
                 cv2.rectangle(out_img, win_points[2], win_points[3], (128,128,0), 2)
 
         # # Plots the left and right polynomials on the lane lines
-        # plt.plot(left_fitx, ploty, color='yellow')
-        # plt.plot(right_fitx, ploty, color='yellow')
+        self._draw_polyline_inplace(out_img, self.left_fit)
+        self._draw_polyline_inplace(out_img, self.right_fit)
+        # Draw the center line
+        self._draw_polyline_inplace(out_img, (self.left_fit + self.right_fit)*0.5 )
+
         #----------------------------#
         ## End visualization steps ##
 
         return out_img
 
-    def search_around_poly(self, binary_warped, debug=False):
+    def search_around_poly(self, binary_warped, debug=False, verbose=False):
         #
         margin = self.track_margin
         left_fit = self.left_fit
@@ -258,7 +278,7 @@ class LANE_TRACKER(object):
 
         # Check if the points in region is not plenty enough
         if len(leftx) < self.track_minpix or len(rightx) < self.track_minpix:
-            print("len(leftx) = %d, len(rightx) = %d" % (len(leftx), len(rightx)))
+            print("Reset track, len(leftx) = %d, len(rightx) = %d" % (len(leftx), len(rightx)))
             return None
 
         # Fit new polynomials
@@ -281,8 +301,10 @@ class LANE_TRACKER(object):
             out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
         # # Plot the polynomial lines onto the image
-        # plt.plot(left_fitx, ploty, color='yellow')
-        # plt.plot(right_fitx, ploty, color='yellow')
+        self._draw_polyline_inplace(out_img, self.left_fit)
+        self._draw_polyline_inplace(out_img, self.right_fit)
+        # Draw the center line
+        self._draw_polyline_inplace(out_img, (self.left_fit + self.right_fit)*0.5 )
         #----------------------------#
         ## End visualization steps ##
 
@@ -300,7 +322,7 @@ class LANE_TRACKER(object):
         out_img = self.fit_polynomial(binary_warped, debug=debug)
         return out_img
 
-    def pipeline(self, binary_warped, xm_per_pix, ym_per_pix, debug=True):
+    def pipeline(self, binary_warped, xm_per_pix, ym_per_pix, debug=True, verbose=False):
         """
         """
         # 1.Find lane
@@ -312,7 +334,11 @@ class LANE_TRACKER(object):
         self.right_fit_m = self.trans_poly_pixel_2_meter( self.right_fit, xm_per_pix, ym_per_pix)
         R_left = self.curvature_func(self.left_fit_m, y_eval_m)
         R_right = self.curvature_func(self.right_fit_m, y_eval_m)
-        R_avg = (R_left + R_right)*0.5
+        R_avg = self.curvature_func( (self.left_fit_m + self.right_fit_m )*0.5, y_eval_m)
+        R_dict = dict()
+        R_dict["R_left"] = R_left
+        R_dict["R_right"] = R_right
+        R_dict["R_avg"] = R_avg
 
         # 3. Calculate the vehicle position with respect to center
         x_img_center = float(binary_warped.shape[1] - 1) * xm_per_pix * 0.5
@@ -320,9 +346,17 @@ class LANE_TRACKER(object):
         lx_right = self.poly_func(self.right_fit_m, y_eval_m, -x_img_center)
         lx_avg = (lx_left + lx_right)*0.5
         lx_delta = lx_right - lx_left
+        lx_dict = dict()
+        lx_dict["lx_left"] = lx_left
+        lx_dict["lx_right"] = lx_right
+        lx_dict["lx_avg"] = lx_avg
+        lx_dict["lx_delta"] = lx_delta
 
-        if debug:
-            print("(R_left, R_right, R_avg) = (%f, %f, %f)" % (R_left, R_right, R_avg) )
-            print("(lx_left, lx_right, lx_avg, lx_delta) = (%f, %f, %f, %f)" % (lx_left, lx_right, lx_avg, lx_delta) )
+        if verbose:
+            log_out = ""
+            log_out += "(R_left, R_right, R_avg) = (%f, %f, %f)" % (R_left, R_right, R_avg)
+            log_out += "\n"
+            log_out += "(lx_left, lx_right, lx_avg, lx_delta) = (%f, %f, %f, %f)" % (lx_left, lx_right, lx_avg, lx_delta)
+            print(log_out)
 
-        return out_img, R_avg, lx_avg
+        return out_img, R_dict, lx_dict
