@@ -114,10 +114,13 @@ if __name__ == "__main__":
     # Transform the image with line
     img_birdeye = birdeye_trans.transform(img_line, is_interpolating=False)
 
+    # Inverse transform
+    img_trans_inverse_transe = birdeye_trans.inverse_transform(img_birdeye, is_interpolating=True)
+
     # Save results
     save_image_RGB_or_gray(img_line, dir_out, f_name[:-4] + "img_line.jpg")
     save_image_RGB_or_gray(img_birdeye, dir_out, f_name[:-4] + "img_birdeye.jpg")
-
+    save_image_RGB_or_gray(img_birdeye, dir_out, f_name[:-4] + "img_trans_inverse_transe.jpg")
 
 
     fig_id = 0
@@ -135,6 +138,12 @@ if __name__ == "__main__":
     # Save the resulted figure
     plt.savefig(dir_out + "plot_" + f_name[:-4] + "_birdeye.png")
 
+    # Ploting
+    plt.figure(fig_id); fig_id += 1
+    plt.imshow(img_trans_inverse_transe, cmap='gray')
+    plt.grid()
+    # Save the resulted figure
+    plt.savefig(dir_out + "plot_" + f_name[:-4] + "_img_trans_inverse_transe.png")
 
     plt.show()
     # cv2.imshow('img',img_birdeye)
