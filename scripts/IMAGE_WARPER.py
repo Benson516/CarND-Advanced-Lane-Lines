@@ -30,10 +30,16 @@ class IMAGE_WARPER(object):
         # Define conversions in x and y from pixels space to meters
         lane_width_in_pixel = np.average( [(986 - 293), (1009 - 314), (991 - 304), (1012 - 323)] )
         dash_length_in_pixel = np.average( [(521 - 446), (275 - 200), (446 - 358), (185 - 100), (550 - 472), (679 - 599)] )
-        print("lane_width_in_pixel = %f" % lane_width_in_pixel)
-        print("dash_length_in_pixel = %f" % dash_length_in_pixel)
         self.xm_per_pix = 3.7/lane_width_in_pixel # meters per pixel in x dimension
         self.ym_per_pix = 3.0/dash_length_in_pixel # meters per pixel in y dimension
+        print("lane_width_in_pixel = %f" % lane_width_in_pixel)
+        print("dash_length_in_pixel = %f" % dash_length_in_pixel)
+        test_x = (img_size[0]-2*tranx_x1)
+        test_y = img_size[1]
+        test_x_m = test_x * self.xm_per_pix
+        test_y_m = test_y * self.ym_per_pix
+        print("xm_per_pix = %f, %d * xm_per_pix = %f" % (self.xm_per_pix, test_x, test_x_m) )
+        print("ym_per_pix = %f, %d * ym_per_pix = %f" % (self.ym_per_pix, test_y, test_y_m) )
         #-------------------------#
 
         # Variables
