@@ -1,21 +1,40 @@
-## Writeup Template
+# Self-Driving Car Engineer Nanodegree
 
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
+
+## Project 2: **Advanced Lane Finding** 
+
+The goals / steps of this project are the following:
+- Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
+- Apply a distortion correction to raw images.
+- Use color transforms, gradients, etc., to create a thresholded binary image.
+- Apply a perspective transform to rectify binary image ("birds-eye view").
+- Detect lane pixels and fit to find the lane boundary.
+- Determine the curvature of the lane and vehicle position with respect to center.
+- Warp the detected lane boundaries back onto the original image.
+- Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+---
+
+The above steps can can be catogorized into two parts with the following structure
+
+1. Off-line preparation
+    - Camera calibration
+- On-line processing/pipeline
+    - Image preprocessing
+        - Un-distort an image
+        - Create a binary image marking possible lane pixels
+        - Apply perspective transform to "birds-eye view"
+    - Lane-finding algorithm
+        - Detect lane pixels and fit to find the lane boundary
+        - Determine the curvature of the lane and vehicle position with respect to center
+    - Visualization
+        - Warp the detected lane boundaries back onto the original image
+        - Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position
 
 ---
 
-**Advanced Lane Finding Project**
+All codes of this project were written in iPython notebook named "project2_advanced_lane_finding.ipynb" located at the root folder of this project.
 
-The goals / steps of this project are the following:
-
-* Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
-* Apply a distortion correction to raw images.
-* Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
-* Detect lane pixels and fit to find the lane boundary.
-* Determine the curvature of the lane and vehicle position with respect to center.
-* Warp the detected lane boundaries back onto the original image.
-* Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.
+---
 
 [//]: # (Image References)
 
@@ -27,6 +46,7 @@ The goals / steps of this project are the following:
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
+
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -37,7 +57,7 @@ The goals / steps of this project are the following:
 
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
 
-You're reading it!
+This is the writeup for this project.
 
 ### Camera Calibration
 
