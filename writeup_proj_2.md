@@ -95,6 +95,7 @@ img_undistorted = cam_1.undistort(img_ori)
 ```
 
 ![alt text][image1]
+Fig. 1 The comparison of original raw image from camera and un-distorted image
 
 ### Pipeline (single images)
 
@@ -123,19 +124,20 @@ img_preproc = IMAGE_PREPROCESSING(cam_1)
 ```
 
 ![alt text][image2]
+Fig. 2 An un-distorted image of `./test_images/test4.jpg`
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3-1]
-Fig. Binary mask that extract yellow lines.
+Fig. 3 Binary mask that extract yellow lines
 
 ![alt text][image3-2]
-Fig. Binary mask that extract white lines.
+Fig. 4 Binary mask that extract white lines
 
 ![alt text][image3]
-Fig. Combined binary mask
+Fig. 5 Combined binary mask that contains both white and yellow lines
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
