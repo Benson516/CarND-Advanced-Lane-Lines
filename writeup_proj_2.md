@@ -130,13 +130,15 @@ Fig. 2 An un-distorted image of `./test_images/test4.jpg`
 
 In this section, I constructed two pipe of steps to generate binary maskes for yellow lane line and white lane line respectively and combined these maskes by pixel-wise or operation.
 
-These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method
-
-
-
 ```python
 img_out = (bi_yellow | bi_white)
 ```
+
+These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section.
+
+To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to HS
+
+
 
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
