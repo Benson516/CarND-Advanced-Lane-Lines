@@ -136,7 +136,7 @@ img_out = (bi_yellow | bi_white)
 
 These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section.
 
-To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to HS
+To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [17, 22]
 
 
 
