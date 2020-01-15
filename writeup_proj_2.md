@@ -128,6 +128,16 @@ Fig. 2 An un-distorted image of `./test_images/test4.jpg`
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
+In this section, I constructed two pipe of steps to generate binary maskes for yellow lane line and white lane line respectively and combined these maskes by pixel-wise or operation.
+
+These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method
+
+
+
+```python
+img_out = (bi_yellow | bi_white)
+```
+
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
 ![alt text][image3-1]
