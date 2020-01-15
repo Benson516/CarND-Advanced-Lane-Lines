@@ -18,7 +18,7 @@ The above steps can can be catogorized into two parts with the following structu
 
 1. Off-line preparation
     - Camera calibration
-- On-line processing/pipeline
+2. On-line processing/pipeline
     - Image preprocessing
         - Un-distort an image
         - Create a binary image marking possible lane pixels
@@ -31,15 +31,17 @@ The above steps can can be catogorized into two parts with the following structu
         - Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position
 
 
-All codes of this project were written in iPython notebook named "project2_advanced_lane_finding.ipynb" located at the root folder of this project. The notebook has the structure mentioned above.
+All codes of this project were written in iPython notebook named `project2_advanced_lane_finding.ipynb` located at the root folder of this project. The notebook has the structure mentioned above.
 
 ---
 
 [//]: # (Image References)
 
-[image1]: ./output_images/calibration/undistort_result.png "Undistorted"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
+[image1]: ./output_images/calibration/undistort_result_1.png "Undistorted"
+[image2]: ./output_images/image_preprocessing/test4_preProc_img_undistorted.jpg "Road Transformed"
+[image3-1]: ./output_images/lane_line_mask/test4_biProc_bi_yellow.jpg "Yellow binary Example"
+[image3-2]: ./output_images/lane_line_mask/test4_biProc_bi_white.jpg "White binary Example"
+[image3]: ./output_images/lane_line_mask/test4_biProc_img_out.jpg "Combined binary Example"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
@@ -62,11 +64,35 @@ This file is the writeup for this project.
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The camera calibration step meants to find the intrinsic parameters and distortion coefficients of the camera we used. Because each camera is unique, and these parameters should be globally avelable for each camera, I create a class for cameras. The code of this step is writen in the notebook as a Python class called "CAMERA" in "Part I/Camera Calibration" section.
+The camera calibration step meants to find the intrinsic parameters and distortion coefficients of the camera we used. Because each camera is unique, and these parameters should be globally avelable for each camera, I create a class for cameras. The code of this step is writen in the notebook as a Python class called `CAMERA` in `Part 1: Off-line Preparation / Camera Calibration` section.
   
 In the calibrate() method, I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
+
+To demonstrate the usage of the `CAMERA` class, the code is simplyfy as follow. Full code can be checked in notebook.
+
+```python
+class CAMERA(object):
+    ...
+    def calibrate(self, image_name_list, board_size=(8,6)):
+        ...
+        ret, mtx, dist, rvecs, tvecs = \
+        cv2.calibrateCamera(objpoints, imgpoints, \
+                    gray.shape[::-1], None, None)
+        self.mtx = mtx
+        self.dist = dist
+        ...
+
+    def undistort(self, img):
+        mtx = None
+        return cv2.undistort(img, self.mtx, self.dist, None, mtx)
+
+cam_1 = CAMERA()
+cal_images = glob.glob("camera_cal/calibration*.jpg")
+cam_1.calibrate(cal_images, (9,6))
+img_undistorted = cam_1.undistort(img_ori)
+```
 
 ![alt text][image1]
 
@@ -74,14 +100,42 @@ I then used the output `objpoints` and `imgpoints` to compute the camera calibra
 
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
+The un-distortion step is implemted in the method `pipeline()` of `IMAGE_PREPROCESSING` class, which implemented in `Part 2: On-line Processing and Pipeline / Integration: Combining all as IMAGE_PREPROCESSING` section. This is the first step of IMAGE_PREPROCESSING.pipeline(), using the method of CAMERA object created at first part. The `CAMERA.undistort()` use the cv2.undistort() and the `mtx` and `dist` calculated by `cv2.calibrateCamera` to inversely transform the image to generate a "flat" image.
+
+To demonstrate this step, the code is simplyfy as follow, the full code can be checked in notebook.
+
+```python
+class CAMERA(object):
+    def undistort(self, img):
+        mtx = None
+        return cv2.undistort(img, self.mtx, self.dist, None, mtx)
+
+class IMAGE_PREPROCESSING(object):
+    def __init__(self, camera_in):      
+        self.camera = camera_in
+
+    def pipeline(self, img_ori):
+        # 1. Undistort the input image
+        img_undistorted = self.camera.undistort(img_ori)
+
+cam_1 = CAMERA()
+img_preproc = IMAGE_PREPROCESSING(cam_1)
+```
+
 ![alt text][image2]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
+![alt text][image3-1]
+Fig. Binary mask that extract yellow lines.
+
+![alt text][image3-2]
+Fig. Binary mask that extract white lines.
+
 ![alt text][image3]
+Fig. Combined binary mask
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
