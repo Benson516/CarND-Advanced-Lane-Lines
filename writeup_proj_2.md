@@ -128,7 +128,7 @@ Fig. 2 An un-distorted image of `./test_images/test4.jpg`
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-In this section, I constructed two pipe of steps to generate binary maskes for yellow lane line and white lane line respectively and combined these maskes by pixel-wise or operation.
+In this section, I constructed two pipe of steps to generate binary maskes for yellow lane line and white lane line respectively and combined these maskes by pixel-wise `or` operation. The yellow mask, white mask, and final result are shown in Fig. 3,4, and 5, respectively.
 
 ```python
 img_out = (bi_yellow | bi_white)
@@ -136,10 +136,17 @@ img_out = (bi_yellow | bi_white)
 
 These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section.
 
-To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [20-3, 20+2]. I shose HSV instead of HLS because the saturation is monotonically getting higher in HSV when the brightness is higher. I choose the saturation to be greater than 90, and doing bitwise-and to generate the final yellow mask as shown in Fig. 3.
+To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [20-3, 20+2]. I shose HSV instead of HLS because the saturation is monotonically getting higher in HSV when the brightness is higher. I choose the saturation to be greater than 90, and doing pixel-wise `and` to generate the final yellow mask as shown in Fig. 3.
 
+```python
+bi_yellow = (H_binary & S_binary)
+```
 
+To generate the white mask, I do something more complicated. By observing the data, it seems a reasonable choise to pick up bright-enough pixels that both shown on sobel-x and sobel-y or the gradiant is high, so I do the following binary operation. The result is shown in Fig. 4.
 
+```python
+bi_white = (bi_mag | ( bi_sobel_x & bi_sobel_y)) & V_binary 
+```
 
 
 ![alt text][image3-1]
@@ -151,7 +158,14 @@ Fig. 4 Binary mask that extract white lines
 ![alt text][image3]
 Fig. 5 Combined binary mask that contains both white and yellow lines
 
+
+
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+
+
+The perspective transform is implemented in `IMAGE_WARPER` class, `transform()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section.
+
+
 
 The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
