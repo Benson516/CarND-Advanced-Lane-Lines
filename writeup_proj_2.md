@@ -254,6 +254,20 @@ The main entry of this module is the `LANE_TRACKER.pipeline()` method. The conce
 3. Do some sanity check
 4. If the check is fail, do step 1.~3. again but using sliding window method `LANE_TRACKER.fit_polynomial()`
 
+**Sliding Window Search**
+
+The sliding window search based on some select rectangle ROI to do local search of line points. The ROI start from the bottom of image, where the position is decided according to histogram of the lower-half image in x-direction. In each iteration, the ROI move up a step, the x-position is determined according the previous found points (average the position of points). 
+
+It's mostly the same as in lecture; however, I modify the histogram algorithm as following.
+
+
+
+
+**Tracking**
+
+
+
+
 
 
 ![alt text][image5]
