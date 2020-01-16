@@ -64,7 +64,7 @@ This file is the writeup for this project.
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The camera calibration step meants to find the intrinsic parameters and distortion coefficients of the camera we used. Because each camera is unique, and these parameters should be globally avelable for each camera, I create a class for cameras. The code of this step is writen in the notebook as a Python class called `CAMERA` in `Part 1: Off-line Preparation / Camera Calibration` section.
+The camera calibration step meants to find the intrinsic parameters and distortion coefficients of the camera we used. Because each camera is unique, and these parameters should be globally avelable for each camera, I create a class for cameras. The code of this step is writen in the notebook as a Python class called `CAMERA` in `Part 1: Off-line Preparation / Camera Calibration` section (in `code cell [2]`).
   
 In the calibrate() method, I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
@@ -101,7 +101,7 @@ Fig. 1 The comparison of original raw image from camera and un-distorted image
 
 #### 1. Provide an example of a distortion-corrected image.
 
-The un-distortion step is implemted in the method `pipeline()` of `IMAGE_PREPROCESSING` class, which implemented in `Part 2: On-line Processing and Pipeline / Integration: Combining all as IMAGE_PREPROCESSING` section. This is the first step of IMAGE_PREPROCESSING.pipeline(), using the method of CAMERA object created at first part. The `CAMERA.undistort()` use the cv2.undistort() and the `mtx` and `dist` calculated by `cv2.calibrateCamera` to inversely transform the image to generate a "flat" image.
+The un-distortion step is implemted in the method `pipeline()` of `IMAGE_PREPROCESSING` class, which implemented in `Part 2: On-line Processing and Pipeline / Integration: Combining all as IMAGE_PREPROCESSING` section (in `code cell [14]`). This is the first step of IMAGE_PREPROCESSING.pipeline(), using the method of CAMERA object created at first part. The `CAMERA.undistort()` use the cv2.undistort() and the `mtx` and `dist` calculated by `cv2.calibrateCamera` to inversely transform the image to generate a "flat" image.
 
 To demonstrate this step, the code is simplyfy as follow, the full code can be checked in notebook.
 
@@ -134,7 +134,7 @@ In this section, I constructed two pipe of steps to generate binary maskes for y
 img_out = (bi_yellow | bi_white)
 ```
 
-These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section.
+These pipelines are implemented in `pipeline()` method, `LANE_LINE_MASK` class, in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section (in `code cell [7]`).
 
 To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [20-3, 20+2]. I shose HSV instead of HLS because the saturation is monotonically getting higher in HSV when the brightness is higher. I choose the saturation to be greater than 90, and doing pixel-wise `and` to generate the final yellow mask as shown in Fig. 3.
 
@@ -163,7 +163,9 @@ Fig. 5 Combined binary mask that contains both white and yellow lines
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
 
-The perspective transform is implemented in `IMAGE_WARPER` class, `transform()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section.
+The perspective transform is implemented in `transform()` method, `IMAGE_WARPER` class, in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section (in `code cell [11]`).
+
+
 
 
 
