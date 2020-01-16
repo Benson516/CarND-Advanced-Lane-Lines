@@ -42,7 +42,9 @@ All codes of this project were written in iPython notebook named `project2_advan
 [image3-1]: ./output_images/lane_line_mask/test4_biProc_bi_yellow.jpg "Yellow binary Example"
 [image3-2]: ./output_images/lane_line_mask/test4_biProc_bi_white.jpg "White binary Example"
 [image3]: ./output_images/lane_line_mask/test4_biProc_img_out.jpg "Combined binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
+[image4]: ./output_images/warp/plot_straight_lines2_line.png "Original image with src Example"
+[image4-1]: ./output_images/warp/plot_straight_lines2_birdeye.png "Warp Example"
+[image4-2]: ./output_images/warp/plot_straight_lines2_img_trans_inverse_transe.png "Inversed Warp Example"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -59,6 +61,8 @@ All codes of this project were written in iPython notebook named `project2_advan
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
 
 This file is the writeup for this project.
+
+---
 
 ### Camera Calibration
 
@@ -97,6 +101,8 @@ img_undistorted = cam_1.undistort(img_ori)
 ![alt text][image1]
 Fig. 1 The comparison of original raw image from camera and un-distorted image
 
+---
+
 ### Pipeline (single images)
 
 #### 1. Provide an example of a distortion-corrected image.
@@ -125,6 +131,8 @@ img_preproc = IMAGE_PREPROCESSING(cam_1)
 
 ![alt text][image2]
 Fig. 2 An un-distorted image of `./test_images/test4.jpg`
+
+---
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
@@ -159,43 +167,81 @@ Fig. 4 Binary mask that extract white lines
 Fig. 5 Combined binary mask that contains both white and yellow lines
 
 
+---
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
 
 The perspective transform is implemented in `transform()` method, `IMAGE_WARPER` class, in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section (in `code cell [11]`).
 
+This module has two jobs
+- Perform perspective transform/inverse transform
+- Provide the scale of meter/pixel of the warpped image
 
+The important variable of this module is the transformation matrix `self.M_birdeye`. This matrix is calculated by `cv2.getPerspectiveTransform()` in `IMAGE_WARPER.cal_transform_matrices()`, which will be called in constructor of `IMAGE_WARPER`. To calculate the transformation matrix, I give the following source point (`self.warp_src`) and destination point (`self.warp_dst`) pairs.
 
-
-
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 ```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+ori_x1 = 200
+ori_x2 = img_size[0] - ori_x1
+self.warp_src = \
+    np.float32([ [593,450],\
+                [686,450],\
+                [ori_x2, img_size[1] ],\
+                [ori_x1,img_size[1] ] ])
+tranx_x1 = 300 # 350
+trans_x2 = img_size[0] - tranx_x1
+self.warp_dst = \
+    np.float32([[tranx_x1,0],\
+                [trans_x2,0],\
+                [trans_x2, img_size[1]],\
+                [tranx_x1, img_size[1]]])
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 593, 450      | 300, 0        | 
+| 686, 450      | 980, 0        |
+| 1080, 720     | 980, 720      |
+| 200, 720      | 300, 720      |
 
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
+
+The scale of meter/pixel of the warpped image is saved in `self.xm_per_pix` and `self.ym_per_pix`, whicj is measured and calculated according to the following fact
+- The lane is 3.7 m in width
+- The dash of lane line is 3 m long
+
+AS teh result, the `self.xm_per_pix` and `self.ym_per_pix` are shown below
+|   VAriable name   | value    |
+|:-----------------:|:--------:| 
+| `self.xm_per_pix` | 0.005355 |
+| `self.ym_per_pix` |  0.04    |
+
+, which, for example, has the following relation:
+
+| Axis  |  pixel value | meter |
+|:-----:|:------------:|:-----:|
+| `x`   |  680         | 3.64  |
+| `y`   |  720         | 28.8  |
+
+
+I verified that my perspective transform was working as expected by drawing the `self.warp_src` points onto a test image. Then I generate the warpped image conuterpart and the inverse transformed image to verify that the lines appear parallel in the warped image.
 
 ![alt text][image4]
+
+Fig. 6 Original image with `self.warp_src` drawn
+
+![alt text][image4-1]
+
+Fig. 7 Warped image
+
+![alt text][image4-2]
+
+Fig. 8 Inverse transform of the warped image
+
+
+
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
