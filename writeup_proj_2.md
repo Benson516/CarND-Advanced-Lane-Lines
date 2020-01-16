@@ -246,11 +246,15 @@ Fig. 8 Inverse transform of the warped image
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-In order to find the lane line pixel, I implemented a sophixticated class called `LANE_TRACKER` (in `code cell [19]`).
+In order to find the lane line pixel, I implemented a sophixticated class called `LANE_TRACKER` in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section  (in `code cell [19]`) to perform the lane finding algorithms. 
+
+The main entry of this module is the `LANE_TRACKER.pipeline()` method. The concept of this pipeline is explained as following.
+1. Try finding lane using tracking method `LANE_TRACKER.search_around_poly()` to search the lines based on the previous result.
+2. Calculate the curvature of lane and the position of vehicle 
+3. Do some sanity check
+4. If the check is fail, do step 1.~3. again but using sliding window method `LANE_TRACKER.fit_polynomial()`
 
 
-
-The perspective transform is implemented in `transform()` method, `IMAGE_WARPER` class, in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section (in `code cell [11]`).
 
 ![alt text][image5]
 
