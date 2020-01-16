@@ -136,11 +136,11 @@ img_out = (bi_yellow | bi_white)
 
 These pipelines are implemented in `LANE_LINE_MASK` class, `pipeline()` method in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 2: Getting Binary Image of Lane-lines` section.
 
-To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [17, 22]
+To generate the yellow-lane mask, I first convert the RGB color image into lnto HSV color space, then apply threshold to Hue and Saturation layer to get the hue in the range of [20-3, 20+2]. I shose HSV instead of HLS because the saturation is monotonically getting higher in HSV when the brightness is higher. I choose the saturation to be greater than 90, and doing bitwise-and to generate the final yellow mask as shown in Fig. 3.
 
 
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+
 
 ![alt text][image3-1]
 Fig. 3 Binary mask that extract yellow lines
