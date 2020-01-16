@@ -242,16 +242,25 @@ Fig. 8 Inverse transform of the warped image
 
 
 
+---
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+In order to find the lane line pixel, I implemented a sophixticated class called `LANE_TRACKER` (in `code cell [19]`).
+
+
+
+The perspective transform is implemented in `transform()` method, `IMAGE_WARPER` class, in  `Part 2: On-line Processing and Pipeline / Image preprocessing / Step 3: Warping Image to "Bird-eye View"` section (in `code cell [11]`).
 
 ![alt text][image5]
+
+--
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 I did this in lines # through # in my code in `my_other_file.py`
+
+---
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
