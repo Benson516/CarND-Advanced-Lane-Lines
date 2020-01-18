@@ -289,7 +289,7 @@ Fig. 10 The weight
 
 Fig. 11 Weighted histogram
 
-The following codes shows how I estimate the changing rate of windows in x-direction. If there are enough points found in the current window, update the changing rate `leftx_delta` with an 1st-order linear filter. The new position of window will then be the mean of lane-line pixels in this iteration plus the changin-rate `leftx_delta`. If there are no enough lane-line points found, simply shift the current window with changing rate `leftx_delta`. The code piece can be found in `for window in range(nwindows):` section in `_find_lane_pixels()` of `LANE_TRACKER` class.
+The following codes shows how I estimate the changing rate of windows in x-direction. If there are enough points found in the current window, update the changing rate `leftx_delta` with an 1st-order linear filter. The new position of window will then be the mean of lane-line pixels in this iteration plus the changin-rate `leftx_delta`. If there are no enough lane-line points found, simply shift the current window with changing rate `leftx_delta`. The code piece can be found in `for window in range(nwindows):` section in `_find_lane_pixels()` of `LANE_TRACKER` class. The effect can be seen on Fig. 12 below.
 
 ```python
 # Step through the windows one by one
@@ -305,18 +305,62 @@ for window in range(nwindows):
     ...
 ```
 
-![alt text][image5-4]
-
-Fig. 12 Result of the sliding window search. Note that when there is less pixels found, the windows still moving toward a possible location according to the previous lane-line found.
-
-
 
 **Tracking**
 
+The tracking search use the previous found curves as the base line to generate a band of window as teh searching region for finding possible lane-line pixels. The function to do this calculation is writen in `search_around_poly()` of `LANE_TRACKER` class. The result is shown in Fig. 13. 
+
+
+**Curve Fitting**
+
+The final step is to fit left and right lane-line according the the pixels found in left and right window, repectively. However, the lane-line has a property of being parellel for every small line-segment, this property can be utilizd to make the result more robust. To utilize the property, I write a method called `parallelize_lines()` for `LANE_TRACKER` class, and to be called by `_fit_poly()` method. 
+
+The concept is simple:
+- Fit curves separately.
+- Calculate the center curve by averaging the parameter, which has the same effect as averaging the x-value being calculated by both curve.
+- Add offset on center curve to re-generate the left and right lanme-line curve.
+
+The result of lane-line finding pipeline is shown in Fig. 12 and Fig. 13.
+
+```python
+def poly_func(self, poly_in, VAL_in, offset=0):
+    """
+    NOTE: VAL_in and VAL_out can be array or matrix.
+    """
+    return ( poly_in[0]*(VAL_in**2)\
+                + poly_in[1]*VAL_in\
+                + poly_in[2] + offset )
+
+def _fit_poly(self, img_shape, leftx, lefty, rightx, righty):
+    #Fit a second order polynomial to each with np.polyfit() 
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+    # Parallelize two curves
+    left_fit, right_fit, center_fit = \
+        self.parallelize_lines(img_shape, left_fit, right_fit)    
+    ...
+    return left_fit, right_fit, left_fitx, right_fitx, ploty
+
+def parallelize_lines(self, img_shape, left_fit, right_fit):
+    # 1. Evaluate the offset of each line regarded to center line
+    y_eval = float(img_shape[0] - 1) 
+    center_fit = (left_fit + right_fit) * 0.5
+    lx_center = self.poly_func(center_fit, y_eval)
+    lx_left = self.poly_func(left_fit, y_eval, -lx_center)
+    lx_right = self.poly_func(right_fit, y_eval, -lx_center)
+    # Shift the center_fit
+    left_fit = np.copy(center_fit )
+    right_fit = np.copy(center_fit )
+    left_fit[-1] += lx_left
+    right_fit[-1] += lx_right
+    return left_fit, right_fit, center_fit
+```
 
 
 
+![alt text][image5-4]
 
+Fig. 12 Result of the sliding window search. Note that when there is less pixels found, the windows still moving toward a possible location according to the previous lane-line found.
 
 ![alt text][image5-5]
 Fig. 13 Result of the tracking search
