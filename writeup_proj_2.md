@@ -443,3 +443,4 @@ The limitation of the current implementation is that the pipeline still fit the 
 
 My pipeline will fail when pass through the shadow of bridge in `challenge_video.mp4` and not usable in `harder_challenge_video.mp4` where there are many shadow and small curves.
 
+To make the pipeline more robust, I want to apply some normalization step to make the thresholding more robust.
