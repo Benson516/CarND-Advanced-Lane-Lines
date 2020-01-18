@@ -375,7 +375,7 @@ class LANE_TRACKER(object):
 
 
 
-    def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix, verbose=False):
+    def calculate_radius_and_offset(self, binary_warped, xm_per_pix, ym_per_pix, verbose=False):
         # 1. Calculate curvature
         y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
         self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
@@ -427,7 +427,7 @@ class LANE_TRACKER(object):
         # 1.Find lane
         out_img, is_tracking = self.find_lane(binary_warped, is_fixed_to_sliding_window=False, debug=debug)
         # 2. Calculate curvature and the vehicle position with respect to center
-        R_dict, lx_dict = self.calculate_radious_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
+        R_dict, lx_dict = self.calculate_radius_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
         # 3. Sanity check
         is_passed = self.sanity_check( R_dict, lx_dict)
         if (not is_passed) and is_tracking:
@@ -435,7 +435,7 @@ class LANE_TRACKER(object):
             # 1. Do it again with sliding window
             out_img, is_tracking = self.find_lane(binary_warped, is_fixed_to_sliding_window=True, debug=debug)
             # 2. Calculate curvature and the vehicle position with respect to center
-            R_dict, lx_dict = self.calculate_radious_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
+            R_dict, lx_dict = self.calculate_radius_and_offset(binary_warped, xm_per_pix, ym_per_pix, verbose=verbose)
             # 3. Sanity check
             is_passed = self.sanity_check( R_dict, lx_dict )
 

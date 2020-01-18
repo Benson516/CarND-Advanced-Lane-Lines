@@ -368,11 +368,11 @@ Fig. 13 Result of the tracking search
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
 
-To calculate the curvature of lane and position of the vehicle, I implemented a method `calculate_radious_and_offset()` in `LANE_TRACKER` class  (in `code cell [19]`) in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section.
+To calculate the curvature of lane and position of the vehicle, I implemented a method `calculate_radius_and_offset()` in `LANE_TRACKER` class  (in `code cell [19]`) in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section.
 
-I use the `curvature_func()` in `calculate_radious_and_offset()` to calculate the curvature of the 2nd-order polynominal given its coefficients.
+I use the `curvature_func()` in `calculate_radius_and_offset()` to calculate the curvature of the 2nd-order polynominal given its coefficients.
 
-Note that I didn't use abs() in the denominator of the curvature equation. With this modification, the program can now tell the direction of turn easily by checing the sign of the resulted radious value, where positive implies turnning right, and negative means turnning left.
+Note that I didn't use abs() in the denominator of the curvature equation. With this modification, the program can now tell the direction of turn easily by checing the sign of the resulted radius value, where positive implies turnning right, and negative means turnning left.
 
 ```python
 def curvature_func(self, poly_in, VAL_in):
@@ -382,14 +382,14 @@ def curvature_func(self, poly_in, VAL_in):
     return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/(2.0*poly_in[0]) )
 ```
 
-The goal of this function is to ouput a **single** radious of curve instead of two. I calculate the the radious of **center curve** to meat this requirment, where **center curve** is calculated by averaging the coefficients of lef and right lane-line curve. 
+The goal of this function is to ouput a **single** radius of curve instead of two. I calculate the the radius of **center curve** to meat this requirment, where **center curve** is calculated by averaging the coefficients of lef and right lane-line curve. 
 
 The position of the vehicle `lx_avg` is caluclated by taking the difference between the image center and the average of left and right lane-line curve evaluated at the bottom of image.
 
 The `lx_delta` is also calculated to check if the detected lane has reasonable width (around 3.7m).
 
 ```python
-def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix):
+def calculate_radius_and_offset(self, binary_warped, xm_per_pix, ym_per_pix):
     # 1. Calculate curvature
     y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
     self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
@@ -421,7 +421,7 @@ The integration is done by constructing a class called `FULL_PIPELINE` (in `code
 
 
 ![alt text][image6]
-Fig. 14 Final result with lane ploted on, the radious and vehicle position is also shown.
+Fig. 14 Final result with lane ploted on, the radius and vehicle position is also shown.
 
 ---
 
@@ -431,10 +431,15 @@ Fig. 14 Final result with lane ploted on, the radious and vehicle position is al
 
 Here's a [link to my video result](./project_video.mp4)
 
+[![Alternate Text](./output_videos/project_video.png)](https://youtu.be/lA3pqjg_GZY)
+
 ---
 
 ### Discussion
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The limitation of the current implementation is that the pipeline still fit the result based on a thresholded binary image. Although the lane fitting and searching algorithm has been dramatically improved in robustness, it still cannot fit to a right line if the bunary image capture some outliers. Unless we can apply some normalization mathod on the original image, the thresholding method can fail if lightening condition changed and shadow or noise presented.
+
+My pipeline will fail when pass through the shadow of bridge in `challenge_video.mp4` and not usable in `harder_challenge_video.mp4` where there are many shadow and small curves.
+
