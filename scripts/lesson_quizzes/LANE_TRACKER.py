@@ -12,11 +12,11 @@ class LANE_TRACKER(object):
         # Parameters
         #-------------------------#
         # Sliding window
-        self.nwindows = 15 # 9 # Choose the number of sliding windows
-        self.margin = 150 # 100 # Set the width of the windows +/- margin
+        self.nwindows = 9 # Choose the number of sliding windows
+        self.margin = 100 # 100 # Set the width of the windows +/- margin
         self.minpix = 50 # Set minimum number of pixels found to recenter window
         # Tracking
-        self.track_margin = 100 # Set the width of the windows +/- margin
+        self.track_margin = 70 # Set the width of the windows +/- margin
         self.track_minpix = 5000 # Set minimum number of pixels found to window
         #-------------------------#
 
@@ -29,6 +29,9 @@ class LANE_TRACKER(object):
         # Polynominal coefficients, in meter
         self.left_fit_m = None
         self.right_fit_m = None
+        # fitx for ploting
+        self.left_fitx = None
+        self.right_fitx = None
         #-------------------------#
 
     # Visualization
@@ -116,6 +119,10 @@ class LANE_TRACKER(object):
         ### TO-DO: Fit a second order polynomial to each with np.polyfit() ###
         left_fit = np.polyfit(lefty, leftx, 2)
         right_fit = np.polyfit(righty, rightx, 2)
+        #
+        # Parallelize two curves
+        left_fit, right_fit, center_fit = self._parallelize_lines(img_shape, left_fit, right_fit)
+
         # Generate x and y values for plotting
         ploty = np.linspace(0, img_shape[0]-1, img_shape[0])
 
@@ -125,10 +132,29 @@ class LANE_TRACKER(object):
 
         return left_fit, right_fit, left_fitx, right_fitx, ploty
 
+    def _parallelize_lines(self, img_shape, left_fit, right_fit):
+        # 1. Evaluate the offset of each line regarded to center line
+        y_eval = float(img_shape[0] - 1)
+        center_fit = (left_fit + right_fit) * 0.5
+        lx_center = self.poly_func(center_fit, y_eval)
+        lx_left_delta = self.poly_func(left_fit, y_eval, -lx_center)
+        lx_right_delta = self.poly_func(right_fit, y_eval, -lx_center)
+        # Shift the center_fit
+        left_fit = np.copy(center_fit )
+        right_fit = np.copy(center_fit )
+        left_fit[-1] += lx_left_delta
+        right_fit[-1] += lx_right_delta
+        return left_fit, right_fit, center_fit
+
     def _update_poly(self, left_fit, right_fit):
         # Update
         self.left_fit = left_fit
         self.right_fit = right_fit
+
+    def _update_fitx(self, left_fitx, right_fitx):
+        # Update
+        self.left_fitx = left_fitx
+        self.right_fitx = right_fitx
 
     def _find_lane_pixels(self, binary_warped):
         # Take a histogram of the bottom half of the image
@@ -201,12 +227,14 @@ class LANE_TRACKER(object):
 
             ### TO-DO: If you found > minpix pixels, recenter next window ###
             ### (`right` or `leftx_current`) on their mean position ###
+            # Left lane-line
             if len(good_left_inds) > minpix:
                 leftx_current_new = int(np.mean(nonzerox[good_left_inds]) )
                 leftx_delta += 0.2*(leftx_current_new - leftx_current)
                 leftx_current = leftx_current_new + int(leftx_delta)
             else:
                 leftx_current += int(leftx_delta)
+            # Right lane-line
             if len(good_right_inds) > minpix:
                 rightx_current_new = int(np.mean(nonzerox[good_right_inds]) )
                 rightx_delta += 0.2*(rightx_current_new - rightx_current)
@@ -239,6 +267,7 @@ class LANE_TRACKER(object):
         left_fit, right_fit, left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
         # Update
         self._update_poly(left_fit, right_fit)
+        self._update_fitx(left_fitx, right_fitx)
 
         ## Visualization ##
         #----------------------------#
@@ -265,6 +294,10 @@ class LANE_TRACKER(object):
         return out_img
 
     def search_around_poly(self, binary_warped, debug=False, verbose=False):
+        #
+        # Save the old fitx for ploting the searching region
+        left_fitx_old = self.left_fitx
+        right_fitx_old = self.right_fitx
         #
         margin = self.track_margin
         left_fit = self.left_fit
@@ -299,6 +332,7 @@ class LANE_TRACKER(object):
         left_fit, right_fit, left_fitx, right_fitx, ploty = self._fit_poly(binary_warped.shape, leftx, lefty, rightx, righty)
         # Update
         self._update_poly(left_fit, right_fit)
+        self._update_fitx(left_fitx, right_fitx)
 
         ## Visualization ##
         #----------------------------#
@@ -310,8 +344,8 @@ class LANE_TRACKER(object):
         if debug:
             # Draw windows
             window_img = np.zeros_like(out_img)
-            self._draw_strip_inplace(window_img, ploty, left_fitx-margin, left_fitx+margin, color=(128,128,0))
-            self._draw_strip_inplace(window_img, ploty, right_fitx-margin, right_fitx+margin, color=(128,128,0))
+            self._draw_strip_inplace(window_img, ploty, left_fitx_old-margin, left_fitx_old+margin, color=(128,128,0))
+            self._draw_strip_inplace(window_img, ploty, right_fitx_old-margin, right_fitx_old+margin, color=(128,128,0))
             out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
         # # Plot the polynomial lines onto the image
@@ -338,8 +372,11 @@ class LANE_TRACKER(object):
         out_img = self.fit_polynomial(binary_warped, debug=debug)
         return out_img, is_tracking
 
+
+
+
     def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix, verbose=False):
-        # 2. Calculate curvature
+        # 1. Calculate curvature
         y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
         self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
         self.right_fit_m = self.trans_poly_pixel_2_meter( self.right_fit, xm_per_pix, ym_per_pix)
@@ -351,7 +388,7 @@ class LANE_TRACKER(object):
         R_dict["R_right"] = R_right
         R_dict["R_avg"] = R_avg
 
-        # 3. Calculate the vehicle position with respect to center
+        # 2. Calculate the vehicle position with respect to center
         x_img_center = float(binary_warped.shape[1] - 1) * xm_per_pix * 0.5
         lx_left = self.poly_func(self.left_fit_m, y_eval_m, -x_img_center)
         lx_right = self.poly_func(self.right_fit_m, y_eval_m, -x_img_center)
@@ -402,4 +439,4 @@ class LANE_TRACKER(object):
             # 3. Sanity check
             is_passed = self.sanity_check( R_dict, lx_dict )
 
-        return out_img, R_dict, lx_dict
+        return out_img, R_dict, lx_dict, is_tracking

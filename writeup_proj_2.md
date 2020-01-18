@@ -50,11 +50,8 @@ All codes of this project were written in iPython notebook named `project2_advan
 [image5-3]: ./output_images/histogram/plot_test4_histogram_weighted.png "Weight histogram"
 [image5-4]: ./output_images/full_pipeline/step/test4_full_img_lane_sliding.jpg "Result of sliding window search"
 [image5-5]: ./output_images/full_pipeline/step/test4_full_img_lane_track.jpg "Result of tracking search"
-[image6]: ./output_images/full_pipeline/step/test4_full_img_out.jpg "Final result with lane ploted"
-
-
-[image6]: ./examples/example_output.jpg "Output"
-[video1]: ./project_video.mp4 "Video"
+[image6]: ./output_images/full_pipeline/step/test4_full_img_out_track.jpg "Final result with lane ploted"
+[video1]: ./output_videos/project_video.mp4 "Video"
 
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -414,11 +411,17 @@ def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix):
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+The final step is to integrate all the modules constructed above.
 
+- Image preprocessing
+- Lane-finding algorithm
+- Visualization
+
+The integration is done by constructing a class called `FULL_PIPELINE` (in `code cell [19]`) in `Full pipeline` section. The pipeline is implemented in `pipeline` in `FULL_PIPELINE` class. Fig. 
 
 
 ![alt text][image6]
+Fig. 14 Final result with lane ploted on, the radious and vehicle position is also shown.
 
 ---
 
