@@ -252,7 +252,7 @@ Fig. 8 Inverse transform of the warped image
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-In order to find the lane line pixel, I implemented a sophixticated class called `LANE_TRACKER` in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section  (in `code cell [19]`) to perform the lane finding algorithms. 
+In order to find the lane line pixel, I implemented a sophixticated class called `LANE_TRACKER` class (in `code cell [19]`) in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section to perform the lane finding algorithms. 
 
 The main entry of this module is the `LANE_TRACKER.pipeline()` method. The concept of this pipeline is explained as following.
 1. Try finding lane using tracking method `LANE_TRACKER.search_around_poly()` to search the lines based on the previous result.
@@ -268,7 +268,7 @@ It's mostly the same as one in lecture; however, I have done two modifications:
 - Multiplying the histogram by weights that are higher at the center of image and lower at the boundary of image.
 - Estimate the changing rate of sliding window in x-direction so that it will have higher possibility to find lane-line pixels in window of next y-level, according to the assumption of that the changing rate of the curvature of lane-line is small.
 
-The following code block shows how I generate the weight, and a demonstration is shown in Fig. 9, 10, and 11. This piece of code is at the begining of `_find_lane_pixels()` in `LANE_TRACKER` class.
+The following code block shows how I generate the weight, and a demonstration is shown in Fig. 9, 10, and 11. This piece of code is at the begining of `_find_lane_pixels()` in `LANE_TRACKER` class (in `code cell [19]`).
 
 ```python
 # Weighted hidtogram, more weight at center
@@ -289,7 +289,7 @@ Fig. 10 The weight
 
 Fig. 11 Weighted histogram
 
-The following codes shows how I estimate the changing rate of windows in x-direction. If there are enough points found in the current window, update the changing rate `leftx_delta` with an 1st-order linear filter. The new position of window will then be the mean of lane-line pixels in this iteration plus the changin-rate `leftx_delta`. If there are no enough lane-line points found, simply shift the current window with changing rate `leftx_delta`. The code piece can be found in `for window in range(nwindows):` section in `_find_lane_pixels()` of `LANE_TRACKER` class. The effect can be seen on Fig. 12 below.
+The following codes shows how I estimate the changing rate of windows in x-direction. If there are enough points found in the current window, update the changing rate `leftx_delta` with an 1st-order linear filter. The new position of window will then be the mean of lane-line pixels in this iteration plus the changin-rate `leftx_delta`. If there are no enough lane-line points found, simply shift the current window with changing rate `leftx_delta`. The code piece can be found in `for window in range(nwindows):` section in `_find_lane_pixels()` of `LANE_TRACKER` class (in `code cell [19]`). The effect can be seen on Fig. 12 below.
 
 ```python
 # Step through the windows one by one
@@ -308,12 +308,12 @@ for window in range(nwindows):
 
 **Tracking**
 
-The tracking search use the previous found curves as the base line to generate a band of window as teh searching region for finding possible lane-line pixels. The function to do this calculation is writen in `search_around_poly()` of `LANE_TRACKER` class. The result is shown in Fig. 13. 
+The tracking search use the previous found curves as the base line to generate a band of window as teh searching region for finding possible lane-line pixels. The function to do this calculation is writen in `search_around_poly()` of `LANE_TRACKER` class (in `code cell [19]`). The result is shown in Fig. 13. 
 
 
 **Curve Fitting**
 
-The final step is to fit left and right lane-line according the the pixels found in left and right window, repectively. However, the lane-line has a property of being parellel for every small line-segment, this property can be utilizd to make the result more robust. To utilize the property, I write a method called `parallelize_lines()` for `LANE_TRACKER` class, and to be called by `_fit_poly()` method. 
+The final step is to fit left and right lane-line according the the pixels found in left and right window, repectively. However, the lane-line has a property of being parellel for every small line-segment, this property can be utilizd to make the result more robust. To utilize the property, I write a method called `parallelize_lines()` for `LANE_TRACKER` class (in `code cell [19]`), and to be called by `_fit_poly()` method. 
 
 The concept is simple:
 - Fit curves separately.
@@ -368,6 +368,22 @@ Fig. 13 Result of the tracking search
 --
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+
+
+To calculate the curvature of lane and position of the vehicle, I implemented a method `calculate_radious_and_offset()` in `LANE_TRACKER` class  (in `code cell [19]`) in `Part 2: On-line Processing and Pipeline / Lane-finding algorithm` section.
+
+I use the `curvature_func()` in `calculate_radious_and_offset()` to calculate the curvature of the 2nd-order polynominal given its coefficients.
+
+Note that I didn't use abs() in the denominator of the curvature equation. With this modification, the program can now tell the direction of turn easily by checing the sign of the resulted radious value, where positive implies turnning right, and negative means turnning left.
+
+```python
+def curvature_func(self, poly_in, VAL_in):
+    """
+    NOTE: VAL_in and VAL_out can be array or matrix.
+    """
+    return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/(2.0*poly_in[0]) )
+```
+
 
 I did this in lines # through # in my code in `my_other_file.py`
 
