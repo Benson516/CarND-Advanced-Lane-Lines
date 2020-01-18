@@ -48,6 +48,9 @@ All codes of this project were written in iPython notebook named `project2_advan
 [image5-1]: ./output_images/histogram/plot_test4_histogram.png "Original histogram"
 [image5-2]: ./output_images/histogram/plot_test4_histogram_weight.png "The weight"
 [image5-3]: ./output_images/histogram/plot_test4_histogram_weighted.png "Weight histogram"
+[image5-4]: ./output_images/full_pipeline/step/test4_full_img_lane_sliding.jpg "Result of sliding window search"
+[image5-5]: ./output_images/full_pipeline/step/test4_full_img_lane_track.jpg "Result of tracking search"
+
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -263,25 +266,48 @@ The sliding window search based on some select rectangle ROI to do local search 
 
 It's mostly the same as one in lecture; however, I have done two modifications:
 - Multiplying the histogram by weights that are higher at the center of image and lower at the boundary of image.
-- Searching the maximum from the center of image instead from lower x-value side
+- Estimate the changing rate of sliding window in x-direction so that it will have higher possibility to find lane-line pixels in window of next y-level, according to the assumption of that the changing rate of the curvature of lane-line is small.
 
-The following code block shows how I generate the weight, and a demonstration is shown in Fig.
+The following code block shows how I generate the weight, and a demonstration is shown in Fig. 9, 10, and 11. This piece of code is at the begining of `_find_lane_pixels()` in `LANE_TRACKER` class.
+
 ```python
 # Weighted hidtogram, more weight at center
 midpoint = np.int(histogram.shape[0]//2)
 histogram_weight = np.array([midpoint - np.abs(midpoint - x) for x in range(len(histogram))] )
 histogram = histogram * histogram_weight
 ```
+
+![alt text][image5-1]
+
+Fig. 9 Original histogream
+
+![alt text][image5-2]
+
+Fig. 10 The weight
+
+![alt text][image5-3]
+
+Fig. 11 Weighted histogram
+
+The following codes shows how I estimate the changing rate of windows in x-direction. If there are enough points found in the current window, update the changing rate `leftx_delta` with an 1st-order linear filter. The new position of window will then be the mean of lane-line pixels in this iteration plus the changin-rate `leftx_delta`. If there are no enough lane-line points found, simply shift the current window with changing rate `leftx_delta`. The code piece can be found in `for window in range(nwindows):` section in `_find_lane_pixels()` of `LANE_TRACKER` class.
+
 ```python
-# Find the peak of the left and right halves of the histogram
-# These will be the starting point for the left and right lines
-midpoint = np.int(histogram.shape[0]//2)
-endpoint_left = midpoint - 50
-endpoint_right = midpoint + 50
-leftx_base = (endpoint_left-1) - np.argmax(histogram[(endpoint_left-1)::-1]) # Search from the center, the np.argmax() will only return the first found
-rightx_base = np.argmax(histogram[endpoint_right:]) + endpoint_right
+# Step through the windows one by one
+for window in range(nwindows):
+    ...
+    # Left lane-line
+    if len(good_left_inds) > minpix:
+        leftx_current_new = int(np.mean(nonzerox[good_left_inds]) ) 
+        leftx_delta += 0.2*(leftx_current_new - leftx_current)
+        leftx_current = leftx_current_new + int(leftx_delta)
+    else:
+        leftx_current += int(leftx_delta)
+    ...
 ```
 
+![alt text][image5-4]
+
+Fig. 12 Result of the sliding window search. Note that when there is less pixels found, the windows still moving toward a possible location according to the previous lane-line found.
 
 
 
@@ -292,7 +318,8 @@ rightx_base = np.argmax(histogram[endpoint_right:]) + endpoint_right
 
 
 
-![alt text][image5]
+![alt text][image5-5]
+Fig. 13 Result of the tracking search
 
 --
 
