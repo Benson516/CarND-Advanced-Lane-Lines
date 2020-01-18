@@ -45,6 +45,9 @@ All codes of this project were written in iPython notebook named `project2_advan
 [image4]: ./output_images/warp/plot_straight_lines2_line.png "Original image with src Example"
 [image4-1]: ./output_images/warp/plot_straight_lines2_birdeye.png "Warp Example"
 [image4-2]: ./output_images/warp/plot_straight_lines2_img_trans_inverse_transe.png "Inversed Warp Example"
+[image5-1]: ./output_images/histogram/plot_test4_histogram.png "Original histogram"
+[image5-2]: ./output_images/histogram/plot_test4_histogram_weight.png "The weight"
+[image5-3]: ./output_images/histogram/plot_test4_histogram_weighted.png "Weight histogram"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
@@ -258,7 +261,26 @@ The main entry of this module is the `LANE_TRACKER.pipeline()` method. The conce
 
 The sliding window search based on some select rectangle ROI to do local search of line points. The ROI start from the bottom of image, where the position is decided according to histogram of the lower-half image in x-direction. In each iteration, the ROI move up a step, the x-position is determined according the previous found points (average the position of points). 
 
-It's mostly the same as in lecture; however, I modify the histogram algorithm as following.
+It's mostly the same as one in lecture; however, I have done two modifications:
+- Multiplying the histogram by weights that are higher at the center of image and lower at the boundary of image.
+- Searching the maximum from the center of image instead from lower x-value side
+
+The following code block shows how I generate the weight, and a demonstration is shown in Fig.
+```python
+# Weighted hidtogram, more weight at center
+midpoint = np.int(histogram.shape[0]//2)
+histogram_weight = np.array([midpoint - np.abs(midpoint - x) for x in range(len(histogram))] )
+histogram = histogram * histogram_weight
+```
+```python
+# Find the peak of the left and right halves of the histogram
+# These will be the starting point for the left and right lines
+midpoint = np.int(histogram.shape[0]//2)
+endpoint_left = midpoint - 50
+endpoint_right = midpoint + 50
+leftx_base = (endpoint_left-1) - np.argmax(histogram[(endpoint_left-1)::-1]) # Search from the center, the np.argmax() will only return the first found
+rightx_base = np.argmax(histogram[endpoint_right:]) + endpoint_right
+```
 
 
 
