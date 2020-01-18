@@ -50,8 +50,9 @@ All codes of this project were written in iPython notebook named `project2_advan
 [image5-3]: ./output_images/histogram/plot_test4_histogram_weighted.png "Weight histogram"
 [image5-4]: ./output_images/full_pipeline/step/test4_full_img_lane_sliding.jpg "Result of sliding window search"
 [image5-5]: ./output_images/full_pipeline/step/test4_full_img_lane_track.jpg "Result of tracking search"
+[image6]: ./output_images/full_pipeline/step/test4_full_img_out.jpg "Final result with lane ploted"
 
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
+
 [image6]: ./examples/example_output.jpg "Output"
 [video1]: ./project_video.mp4 "Video"
 
@@ -384,14 +385,38 @@ def curvature_func(self, poly_in, VAL_in):
     return ( (1.0 + (2.0*poly_in[0]*VAL_in + poly_in[1])**2)**(1.5)/(2.0*poly_in[0]) )
 ```
 
+The goal of this function is to ouput a **single** radious of curve instead of two. I calculate the the radious of **center curve** to meat this requirment, where **center curve** is calculated by averaging the coefficients of lef and right lane-line curve. 
 
-I did this in lines # through # in my code in `my_other_file.py`
+The position of the vehicle `lx_avg` is caluclated by taking the difference between the image center and the average of left and right lane-line curve evaluated at the bottom of image.
+
+The `lx_delta` is also calculated to check if the detected lane has reasonable width (around 3.7m).
+
+```python
+def calculate_radious_and_offset(self, binary_warped, xm_per_pix, ym_per_pix):
+    # 1. Calculate curvature
+    y_eval_m = float(binary_warped.shape[0] - 1) * ym_per_pix
+    self.left_fit_m = self.trans_poly_pixel_2_meter( self.left_fit, xm_per_pix, ym_per_pix)
+    self.right_fit_m = self.trans_poly_pixel_2_meter( self.right_fit, xm_per_pix, ym_per_pix)
+    R_avg = self.curvature_func( (self.left_fit_m + self.right_fit_m )*0.5, y_eval_m)
+    
+    # 2. Calculate the vehicle position with respect to center
+    x_img_center = float(binary_warped.shape[1] - 1) * xm_per_pix * 0.5
+    lx_left = self.poly_func(self.left_fit_m, y_eval_m, -x_img_center)
+    lx_right = self.poly_func(self.right_fit_m, y_eval_m, -x_img_center)
+    lx_avg = (lx_left + lx_right)*0.5
+    lx_delta = lx_right - lx_left 
+    
+    return R_avg, lx_avg, lx_delta
+```
+
 
 ---
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
 I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+
+
 
 ![alt text][image6]
 
